@@ -1,0 +1,633 @@
+/* 기본 스타일 초기화 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #4ecdc4;
+    --secondary-color: #44a08d;
+    --accent-color: #ff6b6b;
+    --health-green: #2ecc71;
+    --wellness-blue: #3498db;
+    --dark-bg: #0f1419;
+    --darker-bg: #0a0e13;
+    --card-bg: #1a2332;
+    --text-primary: #ffffff;
+    --text-secondary: #b0c4de;
+    --text-muted: #708090;
+    --gradient-primary: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    --gradient-health: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    --shadow: 0 8px 32px rgba(78, 205, 196, 0.15);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--dark-bg);
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(0, 153, 204, 0.1) 0%, transparent 50%);
+}
+
+/* 헤더 스타일 */
+header {
+    background: rgba(26, 35, 50, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+    padding: 1rem 0;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    animation: healthPulse 2s infinite;
+}
+
+@keyframes healthPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        color: var(--primary-color);
+    }
+    50% { 
+        transform: scale(1.05); 
+        color: var(--health-green);
+    }
+}
+
+.logo h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 2rem;
+}
+
+nav a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+nav a:hover {
+    color: var(--primary-color);
+    background: rgba(0, 212, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* 메인 콘텐츠 */
+main {
+    margin-top: 100px;
+    padding: 2rem;
+}
+
+section {
+    margin: 4rem 0;
+    padding: 3rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 히어로 섹션 */
+.hero {
+    text-align: center;
+    padding: 6rem 2rem;
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.hero-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.app-icon {
+    margin-bottom: 2rem;
+}
+
+.app-icon i {
+    font-size: 5rem;
+    color: var(--primary-color);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.hero h2 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tagline {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+}
+
+.description {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    line-height: 1.8;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.4);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-3px);
+}
+
+h2 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 3rem;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+p {
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+/* 건강 관련 스타일 */
+.health-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    background: rgba(78, 205, 196, 0.1);
+    border-radius: 25px;
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    color: var(--primary-color);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stat:hover {
+    background: rgba(78, 205, 196, 0.2);
+    transform: translateY(-2px);
+}
+
+.stat i {
+    color: var(--health-green);
+}
+
+.health-banner {
+    text-align: center;
+    padding: 2rem;
+    background: var(--gradient-health);
+    border-radius: 16px;
+    margin-bottom: 3rem;
+    box-shadow: 0 6px 25px rgba(46, 204, 113, 0.2);
+}
+
+.health-banner i {
+    font-size: 2rem;
+    color: white;
+    margin-bottom: 1rem;
+    animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.health-banner p {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.motivation-quote {
+    text-align: center;
+    padding: 2rem;
+    background: var(--card-bg);
+    border-radius: 16px;
+    margin-bottom: 3rem;
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    position: relative;
+}
+
+.motivation-quote i {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.motivation-quote p {
+    font-size: 1.3rem;
+    color: var(--text-primary);
+    font-style: italic;
+    margin: 1rem 0;
+    line-height: 1.6;
+}
+
+.developer-message {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(78, 205, 196, 0.1);
+    border-radius: 16px;
+    margin-bottom: 3rem;
+    border: 1px solid rgba(78, 205, 196, 0.2);
+}
+
+.developer-message p {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.7;
+}
+
+.health-commitment {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    background: var(--gradient-health);
+    border-radius: 20px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.health-commitment i {
+    color: white;
+    margin-right: 0.5rem;
+}
+
+/* 다운로드 메시지 */
+.download-message {
+    margin: 2rem 0;
+    padding: 0;
+}
+
+.success-message {
+    background: var(--gradient-health);
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 6px 25px rgba(46, 204, 113, 0.3);
+    animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.success-message i {
+    font-size: 3rem;
+    color: white;
+    margin-bottom: 1rem;
+    animation: bounceIn 0.8s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.success-message p {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+}
+
+/* 기능 섹션 */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow);
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.feature-icon {
+    margin-bottom: 1.5rem;
+}
+
+.feature-icon i {
+    font-size: 3rem;
+    color: var(--primary-color);
+}
+
+.feature-card h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.feature-card p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* 다운로드 섹션 */
+#download {
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.download-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+.download-info h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.download-info p {
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.btn-download {
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 1.1rem;
+    padding: 1.2rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 6px 25px rgba(0, 212, 255, 0.3);
+}
+
+.btn-download:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 35px rgba(0, 212, 255, 0.4);
+}
+
+.system-requirements {
+    background: var(--darker-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.system-requirements h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.system-requirements ul {
+    list-style: none;
+}
+
+.system-requirements li {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.system-requirements li::before {
+    content: "✓";
+    color: var(--primary-color);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+/* 연락처 섹션 */
+.contact-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+.developer-info {
+    text-align: center;
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.developer-avatar i {
+    font-size: 4rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.developer-info h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.developer-info p {
+    color: var(--text-muted);
+}
+
+.contact-methods {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: var(--darker-bg);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.contact-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+    transform: translateX(10px);
+}
+
+.contact-item i {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    width: 20px;
+}
+
+.contact-item span {
+    color: var(--text-secondary);
+}
+
+/* 푸터 */
+footer {
+    background: var(--darker-bg);
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 4rem;
+    border-top: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+footer i {
+    color: var(--accent-color);
+    animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+    
+    nav ul {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    main {
+        margin-top: 120px;
+        padding: 1rem;
+    }
+    
+    .hero {
+        padding: 4rem 1rem;
+    }
+    
+    .hero h2 {
+        font-size: 2.5rem;
+    }
+    
+    .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .download-container,
+    .contact-container {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    section {
+        padding: 2rem 1rem;
+    }
+}

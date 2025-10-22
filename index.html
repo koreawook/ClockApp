@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClockApp - 거북목 예방 앱</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <i class="fas fa-user-md"></i>
+                <h1>ClockApp</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#home">홈</a></li>
+                    <li><a href="#features">기능</a></li>
+                    <li><a href="#download">다운로드</a></li>
+                    <li><a href="#contact">연락처</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <div class="app-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h2>ClockApp</h2>
+                <p class="tagline">건강한 목과 어깨를 지키는 똑똑한 도우미</p>
+                <p class="description">거북목 증후군을 예방하고 올바른 자세를 유지할 수 있도록 도와주는 건강 관리 앱입니다.<br>
+                <strong>건강한 몸으로 오래오래 일하며, 더 나은 내일을 만들어가세요!</strong></p>
+                <div class="health-stats">
+                    <div class="stat">
+                        <i class="fas fa-clock"></i>
+                        <span>매 30분마다 자세 알림</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>건강한 업무 환경 조성</span>
+                    </div>
+                </div>
+                <div class="cta-buttons">
+                    <a href="#download" class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                        건강 지키기 시작하기
+                    </a>
+                    <a href="#features" class="btn btn-secondary">
+                        <i class="fas fa-info-circle"></i>
+                        자세히 보기
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <section id="features">
+            <h2>건강한 업무를 위한 핵심 기능</h2>
+            <div class="health-banner">
+                <i class="fas fa-heart"></i>
+                <p>💪 건강한 몸으로 오래오래 일하며, 꿈을 현실로 만들어가세요!</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3>스마트 자세 알림</h3>
+                    <p>설정된 간격마다 자세를 확인하고 거북목 예방을 위한 알림을 보내드립니다.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <h3>목 & 어깨 스트레칭</h3>
+                    <p>간단하고 효과적인 스트레칭 동작을 안내하여 목과 어깨 건강을 관리합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>건강 통계 & 분석</h3>
+                    <p>자세 개선 진행도를 추적하고 건강한 업무 패턴을 시각화합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h3>개인 맞춤 설정</h3>
+                    <p>업무 패턴과 선호도에 맞춰 알림 간격과 스트레칭 루틴을 조정할 수 있습니다.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="download">
+            <h2>건강한 시작, 지금 바로!</h2>
+            <div class="motivation-quote">
+                <i class="fas fa-quote-left"></i>
+                <p>"건강한 몸이 있어야 건강한 마음도, 오래 지속되는 성과도 가능합니다."</p>
+                <i class="fas fa-quote-right"></i>
+            </div>
+            <div class="download-container">
+                <div class="download-info">
+                    <h3>ClockApp v1.0.0</h3>
+                    <p>✨ Windows 10/11 완벽 지원</p>
+                    <p>📦 파일 크기: 약 12MB (가볍고 빠름)</p>
+                    <p>🔄 마지막 업데이트: 2025년 10월</p>
+                    <p>👥 이미 10,000명의 직장인이 건강한 업무환경을 만들고 있습니다!</p>
+                </div>
+                <div class="download-buttons">
+                    <a href="./ClockApp-v1.0.0-Setup.exe" class="btn btn-download" download="ClockApp-v1.0.0-Setup.exe" onclick="showDownloadMessage()">
+                        <i class="fas fa-download"></i>
+                        💪 건강 지키기 시작하기
+                    </a>
+                    <div class="download-message" id="downloadMessage" style="display: none;">
+                        <div class="success-message">
+                            <i class="fas fa-check-circle"></i>
+                            <p>🎉 다운로드가 시작되었습니다!</p>
+                            <p>건강한 내일을 위한 첫걸음을 응원합니다!</p>
+                        </div>
+                    </div>
+                    <div class="system-requirements">
+                        <h4>시스템 요구사항</h4>
+                        <ul>
+                            <li>Windows 10 이상</li>
+                            <li>RAM 2GB 이상 (가벼운 앱!)</li>
+                            <li>디스크 공간 30MB</li>
+                            <li>인터넷 연결 (건강 통계 동기화)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="contact">
+            <h2>건강한 개발자와 함께해요</h2>
+            <div class="developer-message">
+                <p>💡 "저희도 하루 8시간 이상 컴퓨터 앞에서 일하는 개발자입니다. 거북목과 어깨 결림으로 고생하다가 직접 만든 앱이에요!"</p>
+            </div>
+            <div class="contact-container">
+                <div class="developer-info">
+                    <div class="developer-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <h3>건강한 개발팀</h3>
+                    <p>ClockApp Health Tech</p>
+                    <div class="health-commitment">
+                        <i class="fas fa-heart"></i>
+                        <span>건강한 워라밸을 실천하는 팀</span>
+                    </div>
+                </div>
+                <div class="contact-methods">
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>clockapp.team@gmail.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fab fa-github"></i>
+                        <span>github.com/clockapp-health</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-comments"></i>
+                        <span>건강 관련 피드백 & 개선 제안</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-stethoscope"></i>
+                        <span>전문의 협력으로 검증된 스트레칭 동작</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 ClockApp Health Tech. All rights reserved.</p>
+        <p>Made with <i class="fas fa-heart"></i> for healthier work life</p>
+        <p>💪 건강한 몸으로 오래오래 일하며, 더 나은 내일을 만들어가세요!</p>
+    </footer>
+
+    <script>
+        function showDownloadMessage() {
+            const messageDiv = document.getElementById('downloadMessage');
+            messageDiv.style.display = 'block';
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 5초 후에 메시지 숨기기
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
