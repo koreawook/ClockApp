@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ClockApp - 건강한 업무를 위한 자세 알림 앱
+ClockApp Ver2 - 건강한 업무를 위한 자세 알림 앱
 
 배포자 정보:
 - 개발사: KoreawookDevTeam
@@ -18,6 +18,11 @@ ClockApp - 건강한 업무를 위한 자세 알림 앱
 ✓ 오픈소스 정책 (GitHub 공개)
 ✓ 의료진 자문을 통한 스트레칭 가이드
 ✓ 5,000+ 사용자 검증 완료
+
+Ver1과 Ver2의 차이점:
+- Ver1과 독립적인 실행 (별도 뮤텍스)
+- 향상된 UI/UX 및 안정성
+- 추가 기능 및 최적화
 
 이 소프트웨어는 MIT 라이선스 하에 배포됩니다.
 자세한 내용은 LICENSE 파일을 참조하십시오.
@@ -43,7 +48,7 @@ from pystray import MenuItem, Menu
 import ctypes
 from ctypes import wintypes
 
-# SSL 인증서 검증 비활성화 (개발용)
+# SSL 인증서 검증 우회 (개발용)
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
@@ -60,12 +65,12 @@ def load_weather_cache():
                 cache = json.load(f)
                 cache_time = datetime.fromisoformat(cache['timestamp'])
                 
-                # 2시간 이내 캐시라면 사용
+                # 2시간 이내 캐시인지 확인
                 if datetime.now() - cache_time < timedelta(seconds=WEATHER_CACHE_DURATION):
-                    print(f"날씨 캐시 사용 (저장시각: {cache_time.strftime('%H:%M:%S')})")
+                    print(f"날씨 캐시 사용 (저장 시각: {cache_time.strftime('%H:%M:%S')})")
                     return cache['data']
                 else:
-                    print(f"날씨 캐시 만료 (저장시각: {cache_time.strftime('%H:%M:%S')})")
+                    print(f"날씨 캐시 만료 (저장 시각: {cache_time.strftime('%H:%M:%S')})")
     except Exception as e:
         print(f"날씨 캐시 로드 실패: {e}")
     return None
@@ -79,11 +84,11 @@ def save_weather_cache(weather_data):
         }
         with open(WEATHER_CACHE_FILE, 'w', encoding='utf-8') as f:
             json.dump(cache, f, ensure_ascii=False, indent=2)
-        print(f"날씨 캐시 저장완료: {datetime.now().strftime('%H:%M:%S')}")
+        print(f"날씨 캐시 저장 완료: {datetime.now().strftime('%H:%M:%S')}")
     except Exception as e:
-        print(f"날씨 캐시 저장실패: {e}")
+        print(f"날씨 캐시 저장 실패: {e}")
 
-# 컬러풀한 아이콘 생성 함수 (실제 이미지 파일 사용)
+# 컬러풀한 아이콘 생성 함수 (이미지 파일 사용)
 def load_icon_image(icon_type, size=24):
     """실제 이미지 파일에서 아이콘 로드"""
     try:
@@ -99,45 +104,45 @@ def load_icon_image(icon_type, size=24):
         return None
 
 def create_weather_icon(weather_type, size=(32, 32)):
-    """날씨용 컬러풀한 아이콘 생성 (실제 이미지 파일 사용)"""
-    size_num = size[0]  # 첫번째 차원 사용
+    """날씨별 컬러풀한 아이콘 생성 (이미지 파일 사용)"""
+    size_num = size[0]  # 첫 번째 차원 사용
     return load_icon_image(weather_type, size_num)
 
 def create_system_icon(icon_type, size=(16, 16)):
-    """시스템 UI용 컬러풀한 아이콘 (실제 이미지 파일 사용)"""
-    size_num = size[0]  # 첫번째 차원 사용
+    """시스템 UI용 컬러풀한 아이콘 (이미지 파일 사용)"""
+    size_num = size[0]  # 첫 번째 차원 사용
     return load_icon_image(icon_type, size_num)
 
 def get_colorful_break_text(remaining_mins, remaining_secs, is_meal_time=False):
     """휴식 시간 표시용 컬러풀한 텍스트 생성"""
     if is_meal_time:
-        return "점심시간 시작 (휴식 알림 일시정지)"
+        return "🍽️ 식사시간 (휴식 알림 일시정지)"
     elif remaining_mins > 0:
-        return f"다음 휴식: {remaining_mins}:{remaining_secs:02d}"
+        return f"⏰ 다음 휴식: {remaining_mins}:{remaining_secs:02d}"
     elif remaining_secs > 10:
-        return f"다음 휴식: {remaining_secs}초"
+        return f"⏰ 다음 휴식: {remaining_secs}초"
     else:
-        return "휴식시간!"
+        return "⏰ 휴식시간!"
 
 def get_weather_type_from_icon(icon_text):
     """이모지 아이콘에서 날씨 타입 추출"""
     weather_map = {
         '☀️': 'sunny',
-        '🌞': 'sunny', 
+        '🌤️': 'sunny', 
+        '⛅': 'cloud',
         '☁️': 'cloud',
-        '⛅️': 'cloud',
         '🌧️': 'rain',
-        '☔️': 'rain',
+        '🌦️': 'rain',
         '❄️': 'snow',
         '🌨️': 'snow', 
         '⛈️': 'storm',
         '🌩️': 'storm',
         # 추가 매핑
-        '🌤': 'sunny',
-        '🌥': 'sunny',
-        '⛅': 'sunny',
+        '🌟': 'sunny',
+        '⭐': 'sunny',
+        '☀': 'sunny',
         '☁': 'cloud',
-        '🌦': 'rain'
+        '🌧': 'rain'
     }
     return weather_map.get(icon_text, 'sunny')  # 기본값을 sunny로 설정
 
@@ -153,11 +158,11 @@ def create_clock_image(size=64):
         clock_dark = (25, 25, 112, 255)    # 미드나이트 블루
         hand_color = (220, 20, 60, 255)    # 크림슨 (시계바늘)
 
-        # 시계 중심과 반지름
+        # 시계 중심과 크기
         center_x, center_y = size // 2, size // 2
         clock_radius = size * 0.4
 
-        # 시계 외곽선 그리기
+        # 시계 외곽 원 그리기
         draw.ellipse([
             center_x - clock_radius, center_y - clock_radius,
             center_x + clock_radius, center_y + clock_radius
@@ -165,7 +170,7 @@ def create_clock_image(size=64):
 
         # 시계 숫자 12, 3, 6, 9 표시
         import math
-        for i, angle in enumerate([0, 90, 180, 270]):  # 12, 3, 6, 9의 위치
+        for i, angle in enumerate([0, 90, 180, 270]):  # 12, 3, 6, 9시 위치
             radian = math.radians(angle - 90)  # -90도로 12시를 위로
             mark_radius = clock_radius * 0.8
             
@@ -215,7 +220,7 @@ def create_clock_image(size=64):
             center_x + body_width // 2 - 5, center_y - body_height // 2 + 3 + right_btn_height
         ], fill=mouse_color, outline=mouse_dark, width=1)
 
-        # 스크롤휠 (가운데 선)
+        # 스크롤 휠 (가운데 선)
         wheel_x = center_x
         wheel_y1 = center_y - body_height // 4
         wheel_y2 = center_y + body_height // 4
@@ -238,7 +243,7 @@ def create_clock_image(size=64):
 def convert_png_to_ico(png_path, ico_path):
     """PNG 파일을 ICO 파일로 변환"""
     try:
-        # PNG 이미지 읽기
+        # PNG 이미지 열기
         png_image = Image.open(png_path)
         
         # 여러 크기로 리사이즈해서 ICO 파일 생성
@@ -251,7 +256,7 @@ def convert_png_to_ico(png_path, ico_path):
             
             # RGB 모드로 변환 (ICO 파일 호환성을 위해)
             if resized.mode == 'RGBA':
-                # 투명 배경을 흰색으로 변환
+                # 투명 배경을 흰색으로 변경
                 background = Image.new('RGB', (size, size), (255, 255, 255))
                 background.paste(resized, (0, 0), resized)
                 resized = background
@@ -263,13 +268,13 @@ def convert_png_to_ico(png_path, ico_path):
         # ICO 파일로 저장
         if images:
             images[0].save(ico_path, format='ICO', sizes=[(img.size[0], img.size[1]) for img in images])
-            print(f"PNG를 ICO로 변환성공: {png_path} -> {ico_path}")
+            print(f"PNG를 ICO로 변환 성공: {png_path} -> {ico_path}")
             return True
         else:
             return False
             
     except Exception as e:
-        print(f"PNG to ICO 변환실패: {e}")
+        print(f"PNG to ICO 변환 실패: {e}")
         return False
 
 def get_icon_path():
@@ -334,7 +339,7 @@ def create_icon_file():
         return None
 
 def load_settings():
-    """설정 파일에서 설정을 불러오기"""
+    """설정 파일에서 설정값 불러오기"""
     default_settings = {
         "time_interval": 20,        # 반복시간 20분
         "lunch_hour": 12,
@@ -361,7 +366,7 @@ def load_settings():
         return default_settings
 
 def load_settings_from_file():
-    """설정 파일에서 설정을 로드"""
+    """설정 파일에서 설정값 로드"""
     try:
         settings_file = os.path.join(os.path.dirname(__file__), "clock_settings.json")
         if os.path.exists(settings_file):
@@ -382,10 +387,10 @@ def save_settings_to_file(settings):
         settings_file = os.path.join(os.path.dirname(__file__), "clock_settings.json")
         with open(settings_file, 'w', encoding='utf-8') as f:
             json.dump(settings, f, indent=4, ensure_ascii=False)
-        print(f"설정 저장성공: {settings}")
+        print(f"설정 저장 성공: {settings}")
         return True
     except Exception as e:
-        print(f"설정 저장실패: {e}")
+        print(f"설정 저장 실패: {e}")
         return False
 
 def check_startup_registry():
@@ -417,7 +422,7 @@ def add_to_startup():
             # PyInstaller로 패키징된 exe 파일
             exe_path = sys.executable
         else:
-            # Python 스크립트로 실행 시
+            # Python 스크립트로 실행 중
             exe_path = os.path.abspath(__file__)
         
         # 경로를 따옴표로 감싸고 --minimized 옵션 추가
@@ -463,7 +468,7 @@ def remove_from_startup():
         return False
 
 def add_to_startup_alternative():
-    """작업 스케줄러를 사용한 시작 프로그램 등록 (대안방법)"""
+    """작업 스케줄러를 사용한 시작 프로그램 등록 (대안 방법)"""
     try:
         # 현재 실행 파일의 전체 경로 가져오기
         if getattr(sys, 'frozen', False):
@@ -489,7 +494,7 @@ def add_to_startup_alternative():
         return False
 
 def remove_from_startup_alternative():
-    """작업 스케줄러에서 시작 프로그램 제거 (대안방법)"""
+    """작업 스케줄러에서 시작 프로그램 제거 (대안 방법)"""
     try:
         import subprocess
         cmd = 'schtasks /delete /tn "MouseClock" /f'
@@ -501,7 +506,7 @@ def remove_from_startup_alternative():
             return True
         else:
             print(f"작업 스케줄러 제거 실패: {result.stderr}")
-            return True  # 없는 경우도 성공으로 처리
+            return True  # 이미 없는 경우도 성공으로 처리
             
     except Exception as e:
         print(f"작업 스케줄러 제거 실패: {e}")
@@ -532,7 +537,7 @@ def get_current_location():
         
     except Exception as e:
         print(f"위치 정보 가져오기 실패: {e}")
-        return "서울시"
+        return "판교동"
 
 def get_weather_data(location="Seoul", force_refresh=False):
     """실제 날씨 정보 가져오기 (wttr.in API 사용)"""
@@ -542,11 +547,11 @@ def get_weather_data(location="Seoul", force_refresh=False):
         if cached_data:
             return cached_data
     
-    print("날씨 API 호출 중..")
+    print("날씨 API 호출 중...")
     try:
         # wttr.in API 사용 (무료, API 키 불필요)
         try:
-            # ipapi.co에서 좌표 정보를 가져오기
+            # ipapi.co에서 좌표 정보도 가져오기
             req = urllib.request.Request("http://ipapi.co/json/")
             with urllib.request.urlopen(req, timeout=5, context=ssl_context) as response:
                 location_data = json.loads(response.read())
@@ -562,11 +567,11 @@ def get_weather_data(location="Seoul", force_refresh=False):
                 else:
                     location_str = city
                     
-                if country and country != 'South Korea':  # 한국이 아닌 경우만 국가 추가
+                if country and country != 'South Korea':  # 한국이 아닌 경우만 국가명 추가
                     location_str = f"{location_str}, {country}"
                 
             if lat and lon:
-                # wttr.in API ?�용 (무료, API ??불필??
+                # wttr.in API 사용 (무료, API 키 불필요)
                 weather_url = f"http://wttr.in/{lat},{lon}?format=j1"
                 req = urllib.request.Request(weather_url)
                 with urllib.request.urlopen(req, timeout=10, context=ssl_context) as response:
@@ -583,14 +588,14 @@ def get_weather_data(location="Seoul", force_refresh=False):
                 # 날씨 아이콘 매핑
                 weather_icon = get_weather_icon(weather_desc)
                 
-                # 시간별 예보 정보 처리
+                # 시간대별 예보 데이터
                 hourly_forecast = []
                 if 'weather' in weather_data and weather_data['weather']:
                     today_weather = weather_data['weather'][0]
                     hourly = today_weather.get('hourly', [])
                     
                     for i, hour_data in enumerate(hourly):
-                        if i >= 8:  # 8시간까지
+                        if i >= 8:  # 8개 시간대만
                             break
                         hour_temp = hour_data.get('tempC', '20')
                         hour_desc = hour_data.get('weatherDesc', [{}])[0].get('value', '맑음')
@@ -636,7 +641,7 @@ def get_weather_icon(description):
     if 'clear' in description or '맑' in description:
         return '☀️'
     elif 'cloud' in description or '구름' in description:
-        return '☁️'
+        return '🌤️'
     elif 'rain' in description or '비' in description:
         return '🌧️'
     elif 'snow' in description or '눈' in description:
@@ -646,7 +651,7 @@ def get_weather_icon(description):
     elif 'fog' in description or '안개' in description:
         return '🌫️'
     else:
-        return '☀️'
+        return '🌤️'
 
 def get_default_weather_data():
     """기본 날씨 데이터 (API 실패 시)"""
@@ -656,9 +661,9 @@ def get_default_weather_data():
     if 6 <= hour < 12:
         current_weather = {"icon": "☀️", "temp": "22°C", "desc": "맑음"}
     elif 12 <= hour < 18:
-        current_weather = {"icon": "⛅", "temp": "25°C", "desc": "구름 조금"}
+        current_weather = {"icon": "🌤️", "temp": "25°C", "desc": "구름 조금"}
     elif 18 <= hour < 22:
-        current_weather = {"icon": "🌙", "temp": "20°C", "desc": "저녁"}
+        current_weather = {"icon": "🌆", "temp": "20°C", "desc": "흐림"}
     else:
         current_weather = {"icon": "🌙", "temp": "18°C", "desc": "맑음"}
     
@@ -667,9 +672,9 @@ def get_default_weather_data():
         {'time': "03:00", 'icon': "🌙", 'temp': "15°C", 'desc': "맑음"},
         {'time': "06:00", 'icon': "☀️", 'temp': "18°C", 'desc': "맑음"},
         {'time': "09:00", 'icon': "☀️", 'temp': "22°C", 'desc': "맑음"},
-        {'time': "12:00", 'icon': "⛅", 'temp': "26°C", 'desc': "구름 조금"},
-        {'time': "15:00", 'icon': "⛅", 'temp': "25°C", 'desc': "구름 조금"},
-        {'time': "18:00", 'icon': "🌙", 'temp': "21°C", 'desc': "저녁"},
+        {'time': "12:00", 'icon': "🌤️", 'temp': "26°C", 'desc': "구름 조금"},
+        {'time': "15:00", 'icon': "🌤️", 'temp': "25°C", 'desc': "구름 조금"},
+        {'time': "18:00", 'icon': "🌆", 'temp': "21°C", 'desc': "흐림"},
         {'time': "21:00", 'icon': "🌙", 'temp': "18°C", 'desc': "맑음"}
     ]
     
@@ -682,19 +687,19 @@ def get_default_weather_data():
             'icon': current_weather['icon']
         },
         'hourly': hourly_forecast,
-        'location': '서울시'
+        'location': '판교동'
     }
 
 class RestPopup:
     """휴식 알림 팝업 클래스"""
     def __init__(self):
         self.popup = tk.Toplevel()
-        self.popup.title("휴식 알림")
-        self.popup.geometry("400x380")  # 원형 진행바를 위한 높이 증가
+        self.popup.title("ClockApp Ver2 - 휴식 알림")
+        self.popup.geometry("400x380")  # 원형 진행바를 위한 더 큰 크기
         self.popup.resizable(False, False)
         self.popup.attributes('-topmost', True)  # 항상 위에 표시
         
-        # 아이콘 설정 (사용자 PNG 우선, 그다음 기본 시계 아이콘)
+        # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
             icon_file_path = get_icon_path()
             if icon_file_path and os.path.exists(icon_file_path):
@@ -710,14 +715,14 @@ class RestPopup:
         
         self.create_widgets()
         
-        # X 버튼 비활성화
+        # X 버튼 활성화
         self.popup.protocol("WM_DELETE_WINDOW", self.close_popup)
         
         # 타이머 시작
         self.update_timer()
         
     def close_popup(self):
-        """?�업 ?�기"""
+        """팝업 닫기"""
         try:
             self.popup.destroy()
         except:
@@ -746,15 +751,15 @@ class RestPopup:
         # 팝업 배경색 설정
         self.popup.configure(bg="#f0f8ff")
         
-        # 상단 헤더 영역 (그라디언트 효과)
+        # 상단 헤더 영역 (그라데이션 효과)
         header_frame = tk.Frame(self.popup, bg="#4a90e2", height=100)
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
         
-        # 눈 이모지
+        # 큰 이모지
         emoji_label = tk.Label(
             header_frame,
-            text="👁️",
+            text="🌟",
             font=("Arial", 36),
             bg="#4a90e2",
             fg="white"
@@ -764,7 +769,7 @@ class RestPopup:
         # 메인 메시지
         message_label = tk.Label(
             header_frame, 
-            text="잠시 휴식하세요!", 
+            text="잠시 휴식하세요", 
             font=("Segoe UI", 16, "bold"),
             fg="white",
             bg="#4a90e2"
@@ -807,10 +812,10 @@ class RestPopup:
         button_frame = tk.Frame(self.popup, bg="#f0f8ff")
         button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
         
-        # 닫기 버튼 (모던한 플랫 디자인)
+        # 닫기 버튼 (모던한 플랫 스타일)
         self.close_button = tk.Button(
             button_frame,
-            text="확인 (10초후)",
+            text="확인 (10초 후)",
             state=tk.DISABLED,
             font=("Segoe UI", 11, "bold"),
             bg="#bdc3c7",
@@ -827,7 +832,7 @@ class RestPopup:
     def update_timer(self):
         """타이머 업데이트"""
         if self.remaining_time >= 0:
-            # 진행률과 텍스트 업데이트 (30초에서 시작해서 줄어듦)
+            # 진행바 및 텍스트 업데이트 (30초에서 시작해서 줄어듦)
             self.update_rest_progress_bar()
             
             # 마지막 10초에 닫기 버튼 활성화
@@ -841,7 +846,7 @@ class RestPopup:
             
             # 버튼 텍스트 업데이트
             if self.remaining_time > 10:
-                self.close_button.config(text=f"확인 ({self.remaining_time-10}초후)")
+                self.close_button.config(text=f"확인 ({self.remaining_time-10}초 후)")
             
             # remaining_time 감소
             self.remaining_time -= 1
@@ -850,12 +855,12 @@ class RestPopup:
             self.popup.after(1000, self.update_timer)
         else:
             # 시간 종료 (remaining_time이 -1)
-            self.update_rest_progress_bar()  # 마지막 진행률 업데이트 (0초 표시)
+            self.update_rest_progress_bar()  # 마지막 진행바 업데이트 (0초 표시)
             # 즉시 팝업 닫기
             self.popup.after(500, self.close_popup)
     
     def update_rest_progress_bar(self):
-        """휴식 팝업 원형 진행률과 텍스트 업데이트"""
+        """휴식 팝업 원형 진행바 및 텍스트 업데이트"""
         try:
             import math
             
@@ -876,9 +881,9 @@ class RestPopup:
                 fill="#ecf0f1", outline="#bdc3c7", width=2
             )
             
-            # 진행 호선 (시계 방향으로 채워짐)
+            # 진행 원호 (시계 방향으로 채워짐)
             if remaining_ratio > 0:
-                # 색상 선택 (시간에 따라 변함)
+                # 색상 선택 (시간에 따라 변화)
                 if remaining_ratio > 0.5:
                     color = "#27ae60"  # 녹색
                 elif remaining_ratio > 0.2:
@@ -886,10 +891,10 @@ class RestPopup:
                 else:
                     color = "#e74c3c"  # 빨간색
                 
-                # 각도 계산 (0도가 오른쪽, 시계방향)
+                # 각도 계산 (0도가 위쪽, 시계방향)
                 extent = -360 * remaining_ratio
                 
-                # 호선 그리기
+                # 원호 그리기
                 self.rest_progress_canvas.create_arc(
                     center_x - radius + 5, center_y - radius + 5,
                     center_x + radius - 5, center_y + radius - 5,
@@ -920,7 +925,7 @@ class RestPopup:
             )
             
         except Exception as e:
-            print(f"휴식 진행률 업데이트 오류: {e}")
+            print(f"휴식 진행바 업데이트 오류: {e}")
     
     def close_popup(self):
         """팝업 닫기"""
@@ -934,12 +939,12 @@ class MealPopup:
     def __init__(self, meal_type="식사"):
         self.meal_type = meal_type
         self.popup = tk.Toplevel()
-        self.popup.title("식사 알림")
-        self.popup.geometry("350x200")  # 높이 증가 (진행바 공간)
+        self.popup.title("ClockApp Ver2 - 식사 알림")
+        self.popup.geometry("350x200")  # 크기 증가 (진행바 공간)
         self.popup.resizable(False, False)
         self.popup.attributes('-topmost', True)  # 항상 위에 표시
         
-        # 아이콘 설정 (사용자 PNG 우선, 그다음 기본 시계 아이콘)
+        # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
             icon_file_path = get_icon_path()
             if icon_file_path and os.path.exists(icon_file_path):
@@ -955,7 +960,7 @@ class MealPopup:
         
         self.create_widgets()
         
-        # 닫기 버튼 비활성화
+        # 닫기 버튼 활성화
         self.popup.protocol("WM_DELETE_WINDOW", self.close_popup)
         
         # 타이머 시작
@@ -991,7 +996,7 @@ class MealPopup:
         # 메인 메시지
         message_label = tk.Label(
             self.popup, 
-            text=f"지금은 {self.meal_type} 시간입니다! 🍽️", 
+            text=f"🍽️ {self.meal_type} 시간입니다! 🍽️", 
             font=("Arial", 16, "bold"),
             fg="darkgreen"
         )
@@ -1062,20 +1067,20 @@ class MealPopup:
         else:
             # 시간 종료 (remaining_time이 -1)
             self.timer_label.config(text="식사 완료!")
-            self.update_meal_progress_bar()  # 마지막 진행바 업데이트 (완료 상태)
+            self.update_meal_progress_bar()  # 마지막 진행바 업데이트 (빈 상태)
             # 즉시 팝업 닫기
             self.popup.after(500, self.close_popup)
     
     def update_meal_progress_bar(self):
         """식사 팝업 진행바 업데이트"""
         try:
-            # 남은 시간 비율 계산 (3600초 기준, remaining_time이 -1이면 0으로)
+            # 남은 시간 비율 계산 (3600초 기준, remaining_time이 -1일 때 0이 됨)
             remaining_ratio = max(0.0, self.remaining_time / 3600.0)
             
             # 캔버스 지우기
             self.meal_progress_canvas.delete("all")
             
-            # 배경 바 (회색 영역)
+            # 배경 바 (빈 영역)
             self.meal_progress_canvas.create_rectangle(2, 2, 198, 18, fill="lightgray", outline="gray")
             
             # 진행 바 (왼쪽에서 오른쪽으로 줄어듦)
@@ -1092,15 +1097,15 @@ class WeatherWindow:
     def __init__(self, parent_clock):
         self.parent_clock = parent_clock
         self.weather_window = tk.Toplevel(parent_clock.clock_window)
-        self.weather_window.title("날씨 정보")
+        self.weather_window.title("ClockApp Ver2 - 날씨 정보")
         self.weather_window.geometry("300x700")  # 여백 최소화로 더 좁게 최적화
-        self.weather_window.resizable(True, True)  # 크기 조절 가능하도록 변경
+        self.weather_window.resizable(True, True)  # 크기 조절 가능하게 변경
         
-        # 날씨 창을 부모창 중앙에 위치
+        # 날씨 창을 부모 창 중앙에 위치
         self.weather_window.transient(parent_clock.clock_window)
         self.weather_window.grab_set()  # 모달 창으로 설정
         
-        # 아이콘 설정 (사용자 PNG 우선, 그다음 기본 시계 아이콘)
+        # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
             icon_file_path = get_icon_path()
             if icon_file_path and os.path.exists(icon_file_path):
@@ -1112,15 +1117,15 @@ class WeatherWindow:
         self.center_on_parent()
         
         # 초기 위치 설정
-        self.current_location = "서울시"
+        self.current_location = "판교동"
         self.load_weather_info()
         
     def center_on_parent(self):
-        """부모창 중앙에 날씨 창 위치시키기"""
+        """부모 창 중앙에 날씨 창 위치시키기"""
         parent = self.parent_clock.clock_window
         parent.update_idletasks()
         
-        # 부모창 위치와 크기 가져오기
+        # 부모 창 위치와 크기 가져오기
         parent_x = parent.winfo_x()
         parent_y = parent.winfo_y()
         parent_width = parent.winfo_width()
@@ -1137,7 +1142,7 @@ class WeatherWindow:
         self.weather_window.geometry(f"{weather_width}x{weather_height}+{x}+{y}")
     
     def create_widgets(self):
-        """날씨 창 위젯 생성 - 메인창과 같은 조화로운 디자인"""
+        """날씨 창 위젯 생성 - 메인창과 같은 평화로운 디자인"""
         # 메인 배경색 설정 (메인창과 동일)
         self.weather_window.configure(bg="#f8f9fa")
         
@@ -1145,7 +1150,7 @@ class WeatherWindow:
         main_frame = tk.Frame(self.weather_window, bg="#f8f9fa")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # ?�단: ?�목 ?�역 (카드 ?��???
+        # 상단: 제목 영역 (카드 스타일)
         header_card = tk.Frame(main_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                               highlightbackground="#e0e0e0", highlightthickness=1)
         header_card.pack(fill=tk.X, pady=(0, 10))
@@ -1153,14 +1158,14 @@ class WeatherWindow:
         header_content = tk.Frame(header_card, bg="#ffffff")
         header_content.pack(fill=tk.X, padx=15, pady=12)
         
-        # ?�목
-        title_label = tk.Label(header_content, text="?���??�씨 ?�보", 
+        # 제목
+        title_label = tk.Label(header_content, text="🌤️ 날씨 정보", 
                               font=("Segoe UI", 16, "bold"),
                               bg="#ffffff", fg="#2c3e50")
         title_label.pack(side=tk.LEFT)
         
-        # ?�로고침 버튼 (메인�??��???
-        refresh_btn = tk.Button(header_content, text="?�� ?�로고침", 
+        # 새로고침 버튼 (메인창 스타일)
+        refresh_btn = tk.Button(header_content, text="🔄 새로고침", 
                                command=self.refresh_weather,
                                font=("Segoe UI", 9, "bold"),
                                bg="#4fc3f7", fg="white",
@@ -1171,7 +1176,7 @@ class WeatherWindow:
                                activeforeground="white")
         refresh_btn.pack(side=tk.RIGHT)
         
-        # ?�로고침 버튼 ?�버 ?�과
+        # 새로고침 버튼 호버 효과
         def on_enter_refresh(e):
             refresh_btn['background'] = '#29b6f6'
         def on_leave_refresh(e):
@@ -1179,21 +1184,21 @@ class WeatherWindow:
         refresh_btn.bind("<Enter>", on_enter_refresh)
         refresh_btn.bind("<Leave>", on_leave_refresh)
         
-        # ?�씨 ?�보 ?�시 ?�역 (?�크�?가??
+        # 날씨 정보 표시 영역 (스크롤 가능)
         self.weather_frame = tk.Frame(main_frame, bg="#f8f9fa")
         self.weather_frame.pack(fill=tk.BOTH, expand=True)
         
-        # 로딩 메시지 (메인�??��???
-        self.loading_label = tk.Label(self.weather_frame, text="?�씨 ?�보�?불러?�는 �?..", 
+        # 로딩 메시지 (메인창 스타일)
+        self.loading_label = tk.Label(self.weather_frame, text="날씨 정보를 불러오는 중...", 
                                      font=("Segoe UI", 11), fg="#7f8c8d", bg="#f8f9fa")
         self.loading_label.pack(expand=True)
         
-        # ?�단 버튼 ?�역
+        # 하단 버튼 영역
         button_frame = tk.Frame(main_frame, bg="#f8f9fa")
         button_frame.pack(fill=tk.X, pady=(10, 0))
         
-        # ?�기 버튼 (메인�??��???
-        close_btn = tk.Button(button_frame, text="?�기", 
+        # 닫기 버튼 (메인창 스타일)
+        close_btn = tk.Button(button_frame, text="닫기", 
                              command=self.close_weather,
                              font=("Segoe UI", 10, "bold"),
                              bg="#66bb6a", fg="white",
@@ -1204,7 +1209,7 @@ class WeatherWindow:
                              activeforeground="white")
         close_btn.pack(fill=tk.X)
         
-        # ?�기 버튼 ?�버 ?�과
+        # 닫기 버튼 호버 효과
         def on_enter_close(e):
             close_btn['background'] = '#4caf50'
         def on_leave_close(e):
@@ -1215,51 +1220,51 @@ class WeatherWindow:
     def load_weather_info(self):
         """실제 날씨 정보 로드"""
         def fetch_weather():
-            # 백그?�운?�에???�제 ?�씨 ?�이??가?�오�?
+            # 백그라운드에서 실제 날씨 데이터 가져오기
             weather_data = get_weather_data()
-            # UI ?�레?�에???�데?�트
+            # UI 스레드에서 업데이트
             self.weather_window.after(0, lambda: self.display_weather_data(weather_data))
         
-        # 백그?�운???�레?�에???�씨 ?�보 가?�오�?
+        # 백그라운드 스레드에서 날씨 정보 가져오기
         thread = threading.Thread(target=fetch_weather, daemon=True)
         thread.start()
     
     def display_weather_data(self, weather_data):
-        """?�씨 ?�이?��? UI???�시 - 메인창과 같�? ?�화로운 ?�자??""
+        """날씨 데이터를 UI에 표시 - 메인창과 같은 평화로운 디자인"""
         try:
-            # 로딩 ?�벨 ?�거
+            # 로딩 라벨 제거
             if hasattr(self, 'loading_label'):
                 self.loading_label.destroy()
             
-            # 기존 ?�젯 ?�거 (?�로고침 ??
+            # 기존 위젯 제거 (새로고침 시)
             for widget in self.weather_frame.winfo_children():
                 widget.destroy()
             
-            # ?�재 ?�간
+            # 현재 시간
             now = datetime.now()
             
-            # ?�재 ?�씨 카드 (메인�??��???
+            # 현재 날씨 카드 (메인창 스타일)
             current_card = tk.Frame(self.weather_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                                    highlightbackground="#e0e0e0", highlightthickness=1)
             current_card.pack(fill=tk.X, pady=(0, 10))
             
-            # ?�재 ?�씨 ?�더
+            # 현재 날씨 헤더
             current_header = tk.Frame(current_card, bg="#e3f2fd")
             current_header.pack(fill=tk.X)
             
-            current_title = tk.Label(current_header, text="?�� ?�재 ?�씨", 
+            current_title = tk.Label(current_header, text="🌟 현재 날씨", 
                                    font=("Segoe UI", 12, "bold"), 
                                    bg="#e3f2fd", fg="#1976d2")
             current_title.pack(pady=8)
             
-            # ?�치 ?�보
+            # 위치 정보
             location = weather_data.get('location', self.current_location)
-            location_label = tk.Label(current_card, text=f"�?{location}",
+            location_label = tk.Label(current_card, text=f"� {location}",
                                     font=("Segoe UI", 11, "bold"), 
                                     bg="#ffffff", fg="#2c3e50")
             location_label.pack(pady=(10, 5))
             
-            # ?�재 ?�씨 ?�보
+            # 현재 날씨 정보
             current_weather = weather_data['current']
             current_info_text = f"{current_weather['icon']} {current_weather['description']} {current_weather['temp']}"
             
@@ -1268,28 +1273,28 @@ class WeatherWindow:
                                   bg="#ffffff", fg="#2c3e50")
             current_info.pack(pady=8)
             
-            # ?�세 ?�보
+            # 상세 정보
             detail_info = tk.Label(current_card, 
-                                 text=f"?�도: {current_weather['humidity']} | 바람: {current_weather['wind']}",
+                                 text=f"습도: {current_weather['humidity']} | 바람: {current_weather['wind']}",
                                  font=("Segoe UI", 10), 
                                  bg="#ffffff", fg="#7f8c8d")
             detail_info.pack(pady=(0, 12))
             
-            # ?�간?��??�보 카드 (메인�??��???
+            # 시간대별 예보 카드 (메인창 스타일)
             forecast_card = tk.Frame(self.weather_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                                     highlightbackground="#e0e0e0", highlightthickness=1)
             forecast_card.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
             
-            # ?�보 ?�더
+            # 예보 헤더
             forecast_header = tk.Frame(forecast_card, bg="#e3f2fd")
             forecast_header.pack(fill=tk.X)
             
-            forecast_title = tk.Label(forecast_header, text="?�� ?�간?��??�보", 
+            forecast_title = tk.Label(forecast_header, text="📅 시간대별 예보", 
                                     font=("Segoe UI", 12, "bold"), 
                                     bg="#e3f2fd", fg="#1976d2")
             forecast_title.pack(pady=8)
             
-            # ?�크�?가?�한 ?�보 ?�역
+            # 스크롤 가능한 예보 영역
             canvas = tk.Canvas(forecast_card, bg="#ffffff", highlightthickness=0, bd=0)
             scrollbar = tk.Scrollbar(forecast_card, orient="vertical", command=canvas.yview)
             scrollable_frame = tk.Frame(canvas, bg="#ffffff")
@@ -1305,124 +1310,124 @@ class WeatherWindow:
             canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
             scrollbar.pack(side="right", fill="y", pady=10)
             
-            # ?�간?��??�씨 ?�보 ?�시 (깔끔?????��???
+            # 시간대별 날씨 정보 표시 (깔끔한 행 스타일)
             hourly_data = weather_data['hourly']
             current_hour = now.hour
-            current_index = 0  # ?�재 ?�간?� ?�덱??
+            current_index = 0  # 현재 시간대 인덱스
             
             for i, hour_data in enumerate(hourly_data):
-                # ?�재 ?�간�?가까운 ?�간?� 강조
+                # 현재 시간과 가까운 시간대 강조
                 hour_int = int(hour_data['time'].split(':')[0])
                 is_current = abs(hour_int - current_hour) <= 1
                 
                 if is_current and current_index == 0:
-                    current_index = i  # ?�재 ?�간?� ?�덱???�??
+                    current_index = i  # 현재 시간대 인덱스 저장
                 
                 bg_color = "#e3f2fd" if is_current else "#ffffff"
                 
                 slot_frame = tk.Frame(scrollable_frame, bg=bg_color)
                 slot_frame.pack(fill=tk.X, pady=1, padx=5)
                 
-                # 구분??(�?번째 ?�외)
+                # 구분선 (첫 번째 제외)
                 if i > 0:
                     separator = tk.Frame(scrollable_frame, bg="#e0e0e0", height=1)
                     separator.pack(fill=tk.X, padx=15)
                 
-                # ?�간
+                # 시간
                 time_label = tk.Label(slot_frame, text=hour_data['time'], 
                                     font=("Segoe UI", 10, "bold" if is_current else "normal"), 
                                     bg=bg_color, fg="#2c3e50", width=8, anchor="w")
                 time_label.pack(side=tk.LEFT, padx=(10, 5), pady=8)
                 
-                # ?�씨 ?�이�?
+                # 날씨 아이콘
                 try:
                     weather_type = get_weather_type_from_icon(hour_data['icon'])
                     weather_icon = load_icon_image(weather_type, 24)
                     if weather_icon:
                         weather_label = tk.Label(slot_frame, image=weather_icon, 
                                                bg=bg_color)
-                        weather_label.image = weather_icon  # 참조 ?��?
+                        weather_label.image = weather_icon  # 참조 유지
                     else:
-                        raise Exception("?�이�?로드 ?�패")
+                        raise Exception("아이콘 로드 실패")
                 except Exception as e:
-                    # ?��?지 로드 ?�패???�모지 ?�용
+                    # 이미지 로드 실패시 이모지 사용
                     weather_label = tk.Label(slot_frame, text=hour_data['icon'], 
                                            font=("Segoe UI", 12), 
                                            bg=bg_color)
                 weather_label.pack(side=tk.LEFT, padx=5)
                 
-                # ?�도
+                # 온도
                 temp_label = tk.Label(slot_frame, text=hour_data['temp'], 
                                     font=("Segoe UI", 10, "bold" if is_current else "normal"), 
                                     bg=bg_color, fg="#e74c3c", width=7, anchor="center")
                 temp_label.pack(side=tk.LEFT, padx=3)
                 
-                # ?�명 (모든 ?�스??명확?�게 ?�시)
+                # 설명 (모든 텍스트 명확하게 표시)
                 desc_text = hour_data['desc']
                 desc_container = tk.Frame(slot_frame, bg=bg_color, width=180)
                 desc_container.pack(side=tk.LEFT, padx=3, fill=tk.X, expand=True)
                 desc_container.pack_propagate(False)
                 
-                if len(desc_text) > 12:  # �??�스?�는 ?�크�?
-                    # Canvas�??�크�??�과
+                if len(desc_text) > 12:  # 긴 텍스트는 스크롤
+                    # Canvas로 스크롤 효과
                     desc_canvas = tk.Canvas(desc_container, bg=bg_color, 
                                           highlightthickness=0, height=25)
                     desc_canvas.pack(fill=tk.BOTH, expand=True)
                     
-                    # ?�스???�성 (?????�트, ??진한 ?�상)
+                    # 텍스트 생성 (더 큰 폰트, 더 진한 색상)
                     text_id = desc_canvas.create_text(0, 12, text=desc_text, 
                                                      font=("Segoe UI", 10),
                                                      fill="#5f6c7d", anchor="w")
                     
-                    # ?�스???�비 계산
+                    # 텍스트 너비 계산
                     bbox = desc_canvas.bbox(text_id)
                     text_width = bbox[2] - bbox[0] if bbox else 0
                     
-                    # ?�크�??�니메이??
+                    # 스크롤 애니메이션
                     def scroll_text(x_pos=0):
                         if desc_canvas.winfo_exists():
                             desc_canvas.coords(text_id, x_pos, 12)
                             if x_pos < -text_width:
-                                x_pos = 180  # 처음?�로
+                                x_pos = 180  # 처음으로
                             desc_canvas.after(50, lambda: scroll_text(x_pos - 2))
                     
                     scroll_text(0)
                 else:
-                    # 짧�? ?�스?�는 ?�반 ?�벨 (??명확?�게)
+                    # 짧은 텍스트는 일반 라벨 (더 명확하게)
                     desc_label = tk.Label(desc_container, text=desc_text, 
                                         font=("Segoe UI", 10), 
                                         bg=bg_color, fg="#5f6c7d", anchor="w")
                     desc_label.pack(fill=tk.BOTH, expand=True, pady=5)
             
-            # ?�재 ?�간?�가 중앙???�도�??�크�?조절
+            # 현재 시간대가 중앙에 오도록 스크롤 조절
             def scroll_to_current():
-                # 모든 ?�젯??그려�????�행
+                # 모든 위젯이 그려진 후 실행
                 canvas.update_idletasks()
                 total_items = len(hourly_data)
                 if total_items > 0 and current_index > 0:
-                    # ?�재 ?�간?�가 뷰포??중앙???�도�?계산
-                    # 중앙 ?�치 = (?�재 ?�덱??/ ?�체 개수) - (뷰포???�이 / ?�체 ?�이 / 2)
+                    # 현재 시간대가 뷰포트 중앙에 오도록 계산
+                    # 중앙 위치 = (현재 인덱스 / 전체 개수) - (뷰포트 높이 / 전체 높이 / 2)
                     scroll_position = max(0, min(1, (current_index / total_items) - 0.2))
                     canvas.yview_moveto(scroll_position)
             
-            # ?�간??지?????�크�?조절 (?�젯 ?�더�??�료 ?��?
+            # 약간의 지연 후 스크롤 조절 (위젯 렌더링 완료 대기)
             self.weather_window.after(100, scroll_to_current)
             
-            # ?�데?�트 ?�간 (메인�??��???
+            # 업데이트 시간 (메인창 스타일)
             update_card = tk.Frame(self.weather_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                                   highlightbackground="#e0e0e0", highlightthickness=1)
             update_card.pack(fill=tk.X)
             
             self.update_label = tk.Label(update_card, 
-                                       text=f"?�� 마�?�??�데?�트: {now.strftime('%Y-%m-%d %H:%M:%S')}", 
+                                       text=f"🔄 마지막 업데이트: {now.strftime('%Y-%m-%d %H:%M:%S')}", 
                                        font=("Segoe UI", 9), 
                                        bg="#ffffff", fg="#7f8c8d")
             self.update_label.pack(pady=8)
             
         except Exception as e:
-            print(f"?�씨 ?�이???�시 ?�류: {e}")
+            print(f"날씨 데이터 표시 오류: {e}")
             error_label = tk.Label(self.weather_frame, 
-                                  text=f"?�씨 ?�보�??�시?????�습?�다.\n{e}",
+                                  text=f"날씨 정보를 표시할 수 없습니다.\n{e}",
                                   font=("Segoe UI", 11), 
                                   fg="#e74c3c", 
                                   bg="#f8f9fa",
@@ -1430,62 +1435,62 @@ class WeatherWindow:
             error_label.pack(expand=True, pady=20)
     
     def refresh_weather(self):
-        """날씨 정보 새로고침 (2시간 캐시 로직 사용)"""
-        # 기존 ?�젯 ?�거
+        """날씨 정보 새로고침 (2시간 캐시 로직 적용)"""
+        # 기존 위젯 제거
         for widget in self.weather_frame.winfo_children():
             widget.destroy()
         
-        # 로딩 메시지 ?�시 ?�시 (메인�??��???
+        # 로딩 메시지 다시 표시 (메인창 스타일)
         self.loading_label = tk.Label(self.weather_frame, 
-                                     text="?�� ?�씨 ?�보�??�인?�는 �?..", 
+                                     text="🔄 날씨 정보를 확인하는 중...", 
                                      font=("Segoe UI", 11), 
                                      fg="#7f8c8d",
                                      bg="#f8f9fa")
         self.loading_label.pack(expand=True)
         
-        # 캐시 ?�인 ???�요?�에�??�로고침
+        # 캐시 확인 후 필요시에만 새로고침
         def fetch_weather():
-            # 캐시 ?�인 (2?�간 ?�내�?캐시 ?�용)
+            # 캐시 확인 (2시간 이내면 캐시 사용)
             cached_data = load_weather_cache()
             if cached_data:
-                print("??캐시 ?�용 (2?�간 ?�내)")
+                print("✅ 캐시 사용 (2시간 이내)")
                 weather_data = cached_data
             else:
-                print("??캐시 만료, ???�이??가?�오??�?..")
+                print("⏳ 캐시 만료, 새 데이터 가져오는 중...")
                 weather_data = get_weather_data(force_refresh=True)
             
-            # UI ?�레?�에???�데?�트
+            # UI 스레드에서 업데이트
             self.weather_window.after(0, lambda: self.display_weather_data(weather_data))
         
-        # 백그?�운???�레?�에???�씨 ?�보 가?�오�?
+        # 백그라운드 스레드에서 날씨 정보 가져오기
         thread = threading.Thread(target=fetch_weather, daemon=True)
         thread.start()
     
     def close_weather(self):
-        """?�씨 �??�기"""
+        """날씨 창 닫기"""
         try:
             self.weather_window.destroy()
         except:
             pass
     
     def get_weather_type_from_icon(self, icon_text):
-        """?�모지 ?�이콘에???�씨 ?�??추출 (?�래??메서??"""
+        """이모지 아이콘에서 날씨 타입 추출 (클래스 메서드)"""
         return get_weather_type_from_icon(icon_text)
 
 class SettingsWindow:
-    """?�정 �??�래??""
+    """설정 창 클래스"""
     def __init__(self, parent_clock):
         self.parent_clock = parent_clock
         self.settings_window = tk.Toplevel(parent_clock.clock_window)
-        self.settings_window.title("?�간 ?�정")
-        self.settings_window.geometry("350x500")  # ?�이 증�?�?모든 ?�션 ?�시
+        self.settings_window.title("ClockApp Ver2 - 시간 설정")
+        self.settings_window.geometry("350x500")  # 높이 증가로 모든 옵션 표시
         self.settings_window.resizable(False, False)
         
-        # ?�정 창을 부�?�?중앙???�치
+        # 설정 창을 부모 창 중앙에 위치
         self.settings_window.transient(parent_clock.clock_window)
-        self.settings_window.grab_set()  # 모달 창으�??�정
+        self.settings_window.grab_set()  # 모달 창으로 설정
         
-        # ?�이�??�정 (?�용??PNG ?�선, ?�으�?기본 ?�계 ?�이�?
+        # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
             icon_file_path = get_icon_path()
             if icon_file_path and os.path.exists(icon_file_path):
@@ -1495,50 +1500,50 @@ class SettingsWindow:
         
         self.create_widgets()
         
-        # 창을 부�?�?중앙???�치
+        # 창을 부모 창 중앙에 위치
         self.center_on_parent()
         
     def center_on_parent(self):
-        """부�?�?중앙???�정 �??�치?�키�?""
+        """부모 창 중앙에 설정 창 위치시키기"""
         parent = self.parent_clock.clock_window
         parent.update_idletasks()
         
-        # 부�?�??�치?� ?�기 가?�오�?
+        # 부모 창 위치와 크기 가져오기
         parent_x = parent.winfo_x()
         parent_y = parent.winfo_y()
         parent_width = parent.winfo_width()
         parent_height = parent.winfo_height()
         
-        # ?�정 �??�기
+        # 설정 창 크기
         settings_width = 350
         settings_height = 500
         
-        # 중앙 ?�치 계산
+        # 중앙 위치 계산
         x = parent_x + (parent_width - settings_width) // 2
         y = parent_y + (parent_height - settings_height) // 2
         
         self.settings_window.geometry(f"{settings_width}x{settings_height}+{x}+{y}")
     
     def create_widgets(self):
-        """?�정 �??�젯 ?�성 - 메인창과 같�? ?�화로운 ?�자??""
-        # 메인 배경???�정 (메인창과 ?�일)
+        """설정 창 위젯 생성 - 메인창과 같은 평화로운 디자인"""
+        # 메인 배경색 설정 (메인창과 동일)
         self.settings_window.configure(bg="#f8f9fa")
         
-        # 메인 ?�레??
+        # 메인 프레임
         main_frame = tk.Frame(self.settings_window, bg="#f8f9fa")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # ?�목 카드
+        # 제목 카드
         title_card = tk.Frame(main_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                              highlightbackground="#e0e0e0", highlightthickness=1)
         title_card.pack(fill=tk.X, pady=(0, 10))
         
-        title_label = tk.Label(title_card, text="?�️ ?�간 ?�정", 
+        title_label = tk.Label(title_card, text="⚙️ 시간 설정", 
                               font=("Segoe UI", 14, "bold"),
                               bg="#ffffff", fg="#2c3e50")
         title_label.pack(pady=12)
         
-        # ?�정 카드
+        # 설정 카드
         settings_card = tk.Frame(main_frame, bg="#ffffff", relief=tk.FLAT, bd=0,
                                 highlightbackground="#e0e0e0", highlightthickness=1)
         settings_card.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
@@ -1546,7 +1551,7 @@ class SettingsWindow:
         settings_inner = tk.Frame(settings_card, bg="#ffffff")
         settings_inner.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # 1. ?�식 ?�림 ?�정 (?�한 ?��???배경)
+        # 1. 휴식 알림 설정 (연한 파란색 배경)
         break_section = tk.Frame(settings_inner, bg="#f0f8ff", relief=tk.FLAT, bd=0)
         break_section.pack(pady=5, fill=tk.X)
         
@@ -1557,7 +1562,7 @@ class SettingsWindow:
         self.break_enabled_var.set(getattr(self.parent_clock, 'break_enabled', True))
         
         break_checkbox = tk.Checkbutton(break_frame, 
-                                      text="?�� ?�식 ?�림", 
+                                      text="🔔 휴식 알림", 
                                       variable=self.break_enabled_var,
                                       font=("Segoe UI", 10, "bold"),
                                       bg="#f0f8ff", fg="#2c3e50",
@@ -1567,17 +1572,17 @@ class SettingsWindow:
         time_input_frame = tk.Frame(break_frame, bg="#f0f8ff")
         time_input_frame.pack(side=tk.RIGHT)
         
-        tk.Label(time_input_frame, text="간격 (�?:", 
+        tk.Label(time_input_frame, text="간격 (분):", 
                 font=("Segoe UI", 9), bg="#f0f8ff", fg="#7f8c8d").pack(side=tk.LEFT, padx=(10, 5))
         self.minutes_entry = tk.Entry(time_input_frame, width=12, 
                                      font=("Segoe UI", 11), relief=tk.SOLID, bd=1)
         self.minutes_entry.pack(side=tk.LEFT)
         self.minutes_entry.insert(0, str(self.parent_clock.time_interval))
         
-        # 구분??
+        # 구분선
         tk.Frame(settings_inner, bg="#e0e0e0", height=1).pack(fill=tk.X, pady=8)
         
-        # 2. ?�심 ?�림 ?�정 (?�한 ?��???배경)
+        # 2. 점심 알림 설정 (연한 노란색 배경)
         lunch_section = tk.Frame(settings_inner, bg="#fffef0", relief=tk.FLAT, bd=0)
         lunch_section.pack(pady=5, fill=tk.X)
         
@@ -1588,7 +1593,7 @@ class SettingsWindow:
         self.lunch_enabled_var.set(getattr(self.parent_clock, 'lunch_enabled', True))
         
         lunch_checkbox = tk.Checkbutton(lunch_frame, 
-                                      text="?�� ?�심 ?�림", 
+                                      text="🍱 점심 알림", 
                                       variable=self.lunch_enabled_var,
                                       font=("Segoe UI", 10, "bold"),
                                       bg="#fffef0", fg="#2c3e50",
@@ -1598,7 +1603,7 @@ class SettingsWindow:
         lunch_time_frame = tk.Frame(lunch_frame, bg="#fffef0")
         lunch_time_frame.pack(side=tk.RIGHT)
         
-        tk.Label(lunch_time_frame, text="?�간:", 
+        tk.Label(lunch_time_frame, text="시간:", 
                 font=("Segoe UI", 9), bg="#fffef0", fg="#7f8c8d").pack(side=tk.LEFT, padx=(10, 5))
         self.lunch_hour_entry = tk.Entry(lunch_time_frame, width=5, 
                                          font=("Segoe UI", 11), relief=tk.SOLID, bd=1)
@@ -1613,10 +1618,10 @@ class SettingsWindow:
         self.lunch_minute_entry.pack(side=tk.LEFT)
         self.lunch_minute_entry.insert(0, f"{self.parent_clock.lunch_time[1]:02d}")
         
-        # 구분??
+        # 구분선
         tk.Frame(settings_inner, bg="#e0e0e0", height=1).pack(fill=tk.X, pady=8)
         
-        # 3. ?�???�림 ?�정 (?�한 주황??배경)
+        # 3. 저녁 알림 설정 (연한 주황색 배경)
         dinner_section = tk.Frame(settings_inner, bg="#fff5f0", relief=tk.FLAT, bd=0)
         dinner_section.pack(pady=5, fill=tk.X)
         
@@ -1627,7 +1632,7 @@ class SettingsWindow:
         self.dinner_enabled_var.set(getattr(self.parent_clock, 'dinner_enabled', True))
         
         dinner_checkbox = tk.Checkbutton(dinner_frame, 
-                                       text="?���??�???�림", 
+                                       text="🍽️ 저녁 알림", 
                                        variable=self.dinner_enabled_var,
                                        font=("Segoe UI", 10, "bold"),
                                        bg="#fff5f0", fg="#2c3e50",
@@ -1637,7 +1642,7 @@ class SettingsWindow:
         dinner_time_frame = tk.Frame(dinner_frame, bg="#fff5f0")
         dinner_time_frame.pack(side=tk.RIGHT)
         
-        tk.Label(dinner_time_frame, text="?�간:", 
+        tk.Label(dinner_time_frame, text="시간:", 
                 font=("Segoe UI", 9), bg="#fff5f0", fg="#7f8c8d").pack(side=tk.LEFT, padx=(10, 5))
         self.dinner_hour_entry = tk.Entry(dinner_time_frame, width=5, 
                                           font=("Segoe UI", 11), relief=tk.SOLID, bd=1)
@@ -1652,10 +1657,10 @@ class SettingsWindow:
         self.dinner_minute_entry.pack(side=tk.LEFT)
         self.dinner_minute_entry.insert(0, f"{self.parent_clock.dinner_time[1]:02d}")
         
-        # 구분??
+        # 구분선
         tk.Frame(settings_inner, bg="#e0e0e0", height=1).pack(fill=tk.X, pady=8)
         
-        # 4. ?�작 ?�로그램 ?�록 (?�한 ?�색 배경)
+        # 4. 시작 프로그램 등록 (연한 회색 배경)
         startup_section = tk.Frame(settings_inner, bg="#f5f5f5", relief=tk.FLAT, bd=0)
         startup_section.pack(pady=5, fill=tk.X)
         
@@ -1666,19 +1671,19 @@ class SettingsWindow:
         self.startup_var.set(check_startup_registry())
         
         startup_checkbox = tk.Checkbutton(startup_frame, 
-                                        text="?�� ?�도???�작 ???�동 ?�행", 
+                                        text="💻 윈도우 시작 시 자동 실행", 
                                         variable=self.startup_var,
                                         font=("Segoe UI", 10, "bold"),
                                         bg="#f5f5f5", fg="#2c3e50",
                                         activebackground="#f5f5f5")
         startup_checkbox.pack(side=tk.LEFT)
         
-        # 버튼 ?�레??(메인�??��???
+        # 버튼 프레임 (메인창 스타일)
         button_frame = tk.Frame(main_frame, bg="#f8f9fa")
         button_frame.pack(fill=tk.X)
         
-        # ?�??버튼
-        save_btn = tk.Button(button_frame, text="?�� ?�??, 
+        # 저장 버튼
+        save_btn = tk.Button(button_frame, text="💾 저장", 
                            command=self.save_settings,
                            font=("Segoe UI", 10, "bold"),
                            bg="#66bb6a", fg="white",
@@ -1689,7 +1694,7 @@ class SettingsWindow:
                            activeforeground="white")
         save_btn.pack(side=tk.LEFT, padx=(0, 5), fill=tk.X, expand=True)
         
-        # ?�??버튼 ?�버 ?�과
+        # 저장 버튼 호버 효과
         def on_enter_save(e):
             save_btn['background'] = '#4caf50'
         def on_leave_save(e):
@@ -1697,8 +1702,8 @@ class SettingsWindow:
         save_btn.bind("<Enter>", on_enter_save)
         save_btn.bind("<Leave>", on_leave_save)
         
-        # ?�기 버튼
-        close_btn = tk.Button(button_frame, text="?�기", 
+        # 닫기 버튼
+        close_btn = tk.Button(button_frame, text="닫기", 
                             command=self.settings_window.destroy,
                             font=("Segoe UI", 10, "bold"),
                             bg="#90a4ae", fg="white",
@@ -1709,7 +1714,7 @@ class SettingsWindow:
                             activeforeground="white")
         close_btn.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
         
-        # ?�기 버튼 ?�버 ?�과
+        # 닫기 버튼 호버 효과
         def on_enter_close(e):
             close_btn['background'] = '#78909c'
         def on_leave_close(e):
@@ -1718,60 +1723,60 @@ class SettingsWindow:
         close_btn.bind("<Leave>", on_leave_close)
     
     def save_settings(self):
-        """?�정 ?�??""
+        """설정 저장"""
         try:
-            # ?�력�?검�?�??�??
+            # 입력값 검증 및 저장
             minutes = int(self.minutes_entry.get())
             lunch_hour = int(self.lunch_hour_entry.get())
             lunch_minute = int(self.lunch_minute_entry.get())
             dinner_hour = int(self.dinner_hour_entry.get())
             dinner_minute = int(self.dinner_minute_entry.get())
             
-            # 체크박스 값들 가?�오�?
+            # 체크박스 값들 가져오기
             break_enabled = self.break_enabled_var.get()
             lunch_enabled = self.lunch_enabled_var.get()
             dinner_enabled = self.dinner_enabled_var.get()
             
-            # ?�효??검??
-            if not (1 <= minutes <= 1440):  # 1�?24?�간
-                raise ValueError("?�간 간격?� 1~1440�??�이?�야 ?�니??")
+            # 유효성 검사
+            if not (1 <= minutes <= 1440):  # 1분~24시간
+                raise ValueError("시간 간격은 1~1440분 사이여야 합니다.")
             if not (0 <= lunch_hour <= 23):
-                raise ValueError("?�심?�간?� 0~23???�이?�야 ?�니??")
+                raise ValueError("점심시간은 0~23시 사이여야 합니다.")
             if not (0 <= lunch_minute <= 59):
-                raise ValueError("?�심?�간 분�? 0~59�??�이?�야 ?�니??")
+                raise ValueError("점심시간 분은 0~59분 사이여야 합니다.")
             if not (0 <= dinner_hour <= 23):
-                raise ValueError("?�?�시간�? 0~23???�이?�야 ?�니??")
+                raise ValueError("저녁시간은 0~23시 사이여야 합니다.")
             if not (0 <= dinner_minute <= 59):
-                raise ValueError("?�?�시�?분�? 0~59�??�이?�야 ?�니??")
+                raise ValueError("저녁시간 분은 0~59분 사이여야 합니다.")
             
-            # ?�정 ?�??(부�??�래?�에 ?�달)
+            # 설정 저장 (부모 클래스에 전달)
             self.parent_clock.update_time_settings(minutes, lunch_hour, lunch_minute, dinner_hour, dinner_minute, 
                                                  break_enabled, lunch_enabled, dinner_enabled)
             
-            # ?�작 ?�로그램 ?�록/?�제 처리
+            # 시작 프로그램 등록/해제 처리
             startup_enabled = self.startup_var.get()
             startup_success = True
             
             if startup_enabled:
-                # ?�작 ?�로그램???�록 (?��??�트�?방법 먼�? ?�도)
+                # 시작 프로그램에 등록 (레지스트리 방법 먼저 시도)
                 startup_success = add_to_startup()
                 if not startup_success:
-                    # ?��??�트�?방법 ?�패 ???�업 ?��?줄러 방법 ?�도
-                    print("?��??�트�?방법 ?�패, ?�업 ?��?줄러 방법 ?�도...")
+                    # 레지스트리 방법 실패 시 작업 스케줄러 방법 시도
+                    print("레지스트리 방법 실패, 작업 스케줄러 방법 시도...")
                     startup_success = add_to_startup_alternative()
                     if not startup_success:
-                        tk.messagebox.showwarning("경고", "?�작 ?�로그램 ?�록???�패?�습?�다.")
+                        tk.messagebox.showwarning("경고", "시작 프로그램 등록에 실패했습니다.")
                     else:
-                        tk.messagebox.showinfo("?�림", "?�업 ?��?줄러�??�해 ?�작 ?�로그램???�록?�었?�니??")
+                        tk.messagebox.showinfo("알림", "작업 스케줄러를 통해 시작 프로그램이 등록되었습니다.")
             else:
-                # ?�작 ?�로그램?�서 ?�거 (??방법 모두 ?�도)
+                # 시작 프로그램에서 제거 (두 방법 모두 시도)
                 reg_success = remove_from_startup()
                 sched_success = remove_from_startup_alternative()
                 startup_success = reg_success or sched_success
                 if not startup_success:
-                    tk.messagebox.showwarning("경고", "?�작 ?�로그램 ?�거???�패?�습?�다.")
+                    tk.messagebox.showwarning("경고", "시작 프로그램 제거에 실패했습니다.")
             
-            # ?�일?�도 ?�??
+            # 파일에도 저장
             settings = {
                 "time_interval": minutes,
                 "lunch_hour": lunch_hour,
@@ -1784,23 +1789,23 @@ class SettingsWindow:
             }
             
             if save_settings_to_file(settings):
-                # ?�공 메시지
-                tk.messagebox.showinfo("?�???�료", "?�정???�?�되?�습?�다!")
+                # 성공 메시지
+                tk.messagebox.showinfo("저장 완료", "설정이 저장되었습니다!")
                 self.settings_window.destroy()
             else:
-                tk.messagebox.showerror("?�???�패", "?�정 ?�일 ?�?�에 ?�패?�습?�다.")
+                tk.messagebox.showerror("저장 실패", "설정 파일 저장에 실패했습니다.")
             
         except ValueError as e:
-            tk.messagebox.showerror("?�력 ?�류", str(e))
+            tk.messagebox.showerror("입력 오류", str(e))
         except Exception as e:
-            tk.messagebox.showerror("?�류", f"?�정 ?�??�??�류가 발생?�습?�다: {e}")
+            tk.messagebox.showerror("오류", f"설정 저장 중 오류가 발생했습니다: {e}")
 
 class AboutWindow:
     """배포자 정보 창"""
     def __init__(self, parent_clock):
         self.parent_clock = parent_clock
         self.about_window = tk.Toplevel(parent_clock.clock_window)
-        self.about_window.title("ClockApp 정보")
+        self.about_window.title("ClockApp Ver2 정보")
         self.about_window.geometry("500x600")
         self.about_window.resizable(False, False)
         
@@ -1842,7 +1847,7 @@ class AboutWindow:
         title_frame.pack(fill='x', pady=(0, 20))
         
         # 앱 제목
-        title_label = tk.Label(title_frame, text="ClockApp", 
+        title_label = tk.Label(title_frame, text="ClockApp Ver2", 
                               font=('Arial', 24, 'bold'), 
                               bg='white', fg='#2E86AB')
         title_label.pack()
@@ -1865,33 +1870,25 @@ class AboutWindow:
         info_frame = tk.Frame(main_frame, bg='white')
         info_frame.pack(fill='both', expand=True)
         
-        # 정보 텍스트
-        info_text = """
-🏢 개발사: KoreawookDevTeam
-👨‍💻 개발자: koreawook
-📧 연락처: koreawook@gmail.com
-🌐 홈페이지: https://koreawook.github.io/ClockApp/
-📄 라이선스: MIT License
-📅 배포일: 2025년 10월 22일
-
-✅ 신뢰성 보증:
-• 개인정보 수집 없음 (완전 오프라인)
-• 광고 없음, 100% 무료
-• 오픈소스 정책 (GitHub 공개)
-• 의료진 자문 스트레칭 가이드
-• 5,000+ 사용자 검증 완료
-
-💪 건강한 개발자들이 직접 만든 앱입니다!
-하루 8시간 이상 컴퓨터 앞에서 일하며 
-거북목과 어깨 결림으로 고생하던 저희가
-직접 개발한 건강 관리 도구입니다.
-
-🔒 보안 및 개인정보:
-• 모든 데이터는 로컬에만 저장
-• 인터넷 연결은 날씨 정보만 사용
-• 사용자 추적 기능 없음
-• 수집되는 개인정보 없음
-"""
+        # 정보 텍스트  
+        info_text = ("개발사: KoreawookDevTeam\n"
+                    "개발자: koreawook\n"
+                    "연락처: koreawook@gmail.com\n"
+                    "홈페이지: https://koreawook.github.io/ClockApp/\n"
+                    "라이선스: MIT License\n"
+                    "배포일: 2025년 10월 22일\n\n"
+                    "Ver1과 Ver2의 차이점:\n"
+                    "• Ver1과 독립적인 실행\n"
+                    "• 향상된 UI/UX 및 안정성\n"
+                    "• 추가 기능 및 최적화\n"
+                    "• 고급 날씨 정보 시스템\n"
+                    "• 개선된 스트레칭 가이드\n\n"
+                    "신뢰성 보증:\n"
+                    "• 개인정보 수집 없음\n"
+                    "• 광고 없음, 100% 무료\n"
+                    "• 오픈소스 정책\n"
+                    "• 의료진 자문 스트레칭 가이드\n"
+                    "• 5000+ 사용자 검증 완료")
         
         info_label = tk.Label(info_frame, text=info_text,
                              font=('Arial', 10),
@@ -1931,21 +1928,21 @@ class AboutWindow:
             pass
     
 class ClockWindow:
-    """?�계 �??�래??""
+    """시계 창 클래스"""
     def __init__(self, start_minimized=False):
-        # ?�립?�인 루트 �??�성 (Toplevel ?�??Tk ?�용)
+        # 독립적인 루트 창 생성 (Toplevel 대신 Tk 사용)
         self.clock_window = tk.Tk()
-        self.clock_window.title("ClockApp")
-        self.clock_window.geometry("320x240")  # ???��? 모던???�기
+        self.clock_window.title("ClockApp Ver2")
+        self.clock_window.geometry("320x240")  # 더 넓은 모던한 크기
         self.clock_window.resizable(False, False)
         
-        # ?�작 ??최소???��? ?�??
+        # 시작 시 최소화 여부 저장
         self.start_minimized = start_minimized
         
-        # ?�정 로드
+        # 설정 로드
         self.settings = load_settings_from_file() or {}
         
-        # ?�이�??�정 (?�용??PNG ?�선, ?�으�?기본 ?�계 ?�이�?
+        # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
             icon_file_path = get_icon_path()
             if icon_file_path and os.path.exists(icon_file_path):
@@ -1953,17 +1950,17 @@ class ClockWindow:
         except:
             pass
         
-        # 모던??메인 ?�레??(부?�러??배경??
+        # 모던한 메인 프레임 (부드러운 배경색)
         self.clock_window.configure(bg="#f8f9fa")
         main_frame = tk.Frame(self.clock_window, bg="#f8f9fa")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # ?�단: ?�간 ?�시 ?�역 (카드 ?��???
+        # 상단: 시간 표시 영역 (카드 스타일)
         time_frame = tk.Frame(main_frame, bg="#ffffff", relief=tk.FLAT, bd=0, 
                              highlightbackground="#e0e0e0", highlightthickness=1)
         time_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # ?�계 ?�이�?(?????�트, 모던???��???
+        # 시계 레이블 (더 큰 폰트, 모던한 스타일)
         self.time_label = tk.Label(
             time_frame, 
             text="", 
@@ -1974,10 +1971,10 @@ class ClockWindow:
         )
         self.time_label.pack(pady=(15, 5))
         
-        # ?�계 ?�릭 ?�벤??바인??
+        # 시계 클릭 이벤트 바인딩
         self.time_label.bind("<Button-1>", self.open_settings)
         
-        # ?�짜 ?�이�?(???�련???��???
+        # 날짜 레이블 (더 세련된 스타일)
         self.date_label = tk.Label(
             time_frame, 
             text="", 
@@ -1988,15 +1985,15 @@ class ClockWindow:
         )
         self.date_label.pack(pady=(0, 15))
         
-        # ?�짜 ?�릭 ?�벤??바인??
+        # 날짜 클릭 이벤트 바인딩
         self.date_label.bind("<Button-1>", self.open_settings)
         
-        # 중단: ?�태 ?�시 ?�역 (카드 ?��??? 부?�러???�상)
+        # 중단: 상태 표시 영역 (카드 스타일, 부드러운 색상)
         status_frame = tk.Frame(main_frame, bg="#e3f2fd", relief=tk.FLAT, bd=0,
                                highlightbackground="#90caf9", highlightthickness=1)
         status_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # ?�음 ?�식?�간 ?�벨 (???�에 ?�게)
+        # 다음 휴식시간 라벨 (더 눈에 띄게)
         self.next_break_label = tk.Label(
             status_frame,
             text="",
@@ -2006,14 +2003,14 @@ class ClockWindow:
         )
         self.next_break_label.pack(pady=12)
         
-        # ?�단: 버튼 ?�역 (?�랫 ?�자??
+        # 하단: 버튼 영역 (플랫 디자인)
         button_frame = tk.Frame(main_frame, bg="#f8f9fa")
         button_frame.pack(fill=tk.X)
         
-        # ?�씨 ?�인 버튼 (모던???�랫 버튼)
+        # 날씨 확인 버튼 (모던한 플랫 버튼)
         weather_btn = tk.Button(
             button_frame,
-            text="?���??�씨",
+            text="🌤️ 날씨",
             command=self.open_weather,
             font=("Segoe UI", 10, "bold"),
             bg="#4fc3f7",
@@ -2028,7 +2025,7 @@ class ClockWindow:
         )
         weather_btn.pack(side=tk.LEFT, padx=(0, 5), fill=tk.X, expand=True)
         
-        # ?�버 ?�과 추�?
+        # 호버 효과 추가
         def on_enter_weather(e):
             weather_btn['background'] = '#29b6f6'
         def on_leave_weather(e):
@@ -2036,10 +2033,10 @@ class ClockWindow:
         weather_btn.bind("<Enter>", on_enter_weather)
         weather_btn.bind("<Leave>", on_leave_weather)
         
-        # ?�정 버튼 (모던???�랫 버튼)
+        # 설정 버튼 (모던한 플랫 버튼)
         settings_btn = tk.Button(
             button_frame,
-            text="?�️ ?�정",
+            text="⚙️ 설정",
             command=self.open_settings,
             font=("Segoe UI", 10, "bold"),
             bg="#78909c",
@@ -2054,7 +2051,7 @@ class ClockWindow:
         )
         settings_btn.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
         
-        # ?�버 ?�과 추�?
+        # 호버 효과 추가
         def on_enter_settings(e):
             settings_btn['background'] = '#607d8b'
         def on_leave_settings(e):
@@ -2062,7 +2059,7 @@ class ClockWindow:
         settings_btn.bind("<Enter>", on_enter_settings)
         settings_btn.bind("<Leave>", on_leave_settings)
         
-        # ?�?�된 ?�정�?불러?�기
+        # 저장된 설정값 불러오기
         saved_settings = load_settings()
         self.time_interval = saved_settings["time_interval"]
         self.lunch_time = (saved_settings["lunch_hour"], saved_settings["lunch_minute"])
@@ -2071,96 +2068,96 @@ class ClockWindow:
         self.lunch_enabled = saved_settings.get("lunch_enabled", True)
         self.dinner_enabled = saved_settings.get("dinner_enabled", True)
         
-        print(f"불러???�정 - 간격: {self.time_interval}�? ?�심: {self.lunch_time[0]:02d}:{self.lunch_time[1]:02d}, ?�?? {self.dinner_time[0]:02d}:{self.dinner_time[1]:02d}")
-        print(f"?�성???�태 - ?�식: {self.break_enabled}, ?�심: {self.lunch_enabled}, ?�?? {self.dinner_enabled}")
+        print(f"불러온 설정 - 간격: {self.time_interval}분, 점심: {self.lunch_time[0]:02d}:{self.lunch_time[1]:02d}, 저녁: {self.dinner_time[0]:02d}:{self.dinner_time[1]:02d}")
+        print(f"활성화 상태 - 휴식: {self.break_enabled}, 점심: {self.lunch_enabled}, 저녁: {self.dinner_enabled}")
         
-        # ?�식 ?�?�머 관??변??
-        self.last_break_time = time.time()  # 마�?�??�식 ?�림 ?�간
+        # 휴식 타이머 관련 변수
+        self.last_break_time = time.time()  # 마지막 휴식 알림 시간
         
-        # �??�기 ???�리
+        # 창 닫기 시 정리
         self.clock_window.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # �??�행 ???�작?�로그램???�동 ?�록 (기본 ?�성??
+        # 첫 실행 시 시작프로그램에 자동 등록 (기본 활성화)
         try:
             if not check_startup_registry():
                 add_to_startup()
-                print("?�도???�작?�로그램???�동 ?�록?�었?�니??")
+                print("윈도우 시작프로그램에 자동 등록되었습니다.")
         except Exception as e:
-            print(f"?�작?�로그램 ?�록 ?�류: {e}")
+            print(f"시작프로그램 등록 오류: {e}")
         
-        # ?�작 ??최소??처리
+        # 시작 시 최소화 처리
         if self.start_minimized:
-            # 창을 ?�기�??�스???�레?�에�??�시
-            self.clock_window.withdraw()  # �??�기�?
-            self.create_system_tray()     # ?�스???�레???�이�??�성
+            # 창을 숨기고 시스템 트레이에만 표시
+            self.clock_window.withdraw()  # 창 숨기기
+            self.create_system_tray()     # 시스템 트레이 아이콘 생성
         else:
-            # 창을 ?�면 중앙???�치
+            # 창을 화면 중앙에 위치
             self.clock_window.eval('tk::PlaceWindow . center')
         
-        # ?�계 ?�데?�트 ?�작
+        # 시계 업데이트 시작
         self.update_clock()
         
-        # ?�계 창의 메인루프 ?�작
+        # 시계 창의 메인루프 시작
         self.clock_window.mainloop()
         
     def update_clock(self):
-        """?�계 ?�데?�트"""
+        """시계 업데이트"""
         try:
             now = datetime.now()
             
-            # ?�간 ?�맷 (HH:MM:SS)
+            # 시간 포맷 (HH:MM:SS)
             time_str = now.strftime("%H:%M:%S")
             self.time_label.config(text=time_str)
             
-            # ?�짜 ?�맷 (YYYY-MM-DD ?�일)
+            # 날짜 포맷 (YYYY-MM-DD 요일)
             date_str = now.strftime("%Y-%m-%d %A")
             self.date_label.config(text=date_str)
             
-            # ?�식 ?�?�머 체크
+            # 휴식 타이머 체크
             self.check_break_time()
             
-            # ?�사 ?�간 체크
+            # 식사 시간 체크
             self.check_meal_time()
             
-            # ?�음 ?�식?�간 ?�데?�트
+            # 다음 휴식시간 업데이트
             self.update_next_break_info()
             
-            # 1�????�시 ?�데?�트
+            # 1초 후 다시 업데이트
             self.clock_window.after(1000, self.update_clock)
             
         except Exception as e:
-            print(f"?�계 ?�데?�트 ?�류: {e}")
+            print(f"시계 업데이트 오류: {e}")
     
     def update_next_break_info(self):
-        """?�음 ?�식?�간 ?�보 ?�데?�트"""
+        """다음 휴식시간 정보 업데이트"""
         try:
-            # ?�사?�간 중이�??�별 메시지 ?�시
+            # 식사시간 중이면 특별 메시지 표시
             if self.is_meal_time():
-                self.next_break_label.config(text="?���??�사?�간 (?�식 ?�림 ?�시?��?)", fg="orange")
+                self.next_break_label.config(text="🍽️ 식사시간 (휴식 알림 일시정지)", fg="orange")
                 return
             
             current_time = time.time()
             elapsed_minutes = (current_time - self.last_break_time) / 60
             
-            # ?�음 ?�식까�? ?��? ?�간 계산
+            # 다음 휴식까지 남은 시간 계산
             remaining_minutes = max(0, self.time_interval - elapsed_minutes)
             
             if remaining_minutes >= 1:
                 remaining_mins = int(remaining_minutes)
                 remaining_secs = int((remaining_minutes - remaining_mins) * 60)
-                self.next_break_label.config(text=f"???�음 ?�식: {remaining_mins}:{remaining_secs:02d}", fg="green")
+                self.next_break_label.config(text=f"⏰ 다음 휴식: {remaining_mins}:{remaining_secs:02d}", fg="green")
             else:
                 remaining_secs = int(remaining_minutes * 60)
                 if remaining_secs > 0:
-                    self.next_break_label.config(text=f"???�음 ?�식: {remaining_secs}�?, fg="orange")
+                    self.next_break_label.config(text=f"⏰ 다음 휴식: {remaining_secs}초", fg="orange")
                 else:
-                    self.next_break_label.config(text="???�식?�간!", fg="red")
+                    self.next_break_label.config(text="⏰ 휴식시간!", fg="red")
             
         except Exception as e:
-            print(f"?�음 ?�식?�간 ?�보 ?�데?�트 ?�류: {e}")
+            print(f"다음 휴식시간 정보 업데이트 오류: {e}")
     
     def is_meal_time(self):
-        """?�재 ?�사?�간?��? ?�인 (?�사 ?�림???�성?�된 경우?�만)"""
+        """현재 식사시간인지 확인 (식사 알림이 활성화된 경우에만)"""
         try:
             now = datetime.now()
             current_hour = now.hour
@@ -2169,107 +2166,107 @@ class ClockWindow:
             
             is_meal = False
             
-            # ?�심?�간 체크 (?�심 ?�림???�성?�된 경우?�만)
+            # 점심시간 체크 (점심 알림이 활성화된 경우에만)
             if getattr(self, 'lunch_enabled', True):
                 lunch_start = self.lunch_time[0] * 60 + self.lunch_time[1]
-                lunch_end = lunch_start + 60  # 1?�간 ??
+                lunch_end = lunch_start + 60  # 1시간 후
                 if lunch_start <= current_time_minutes < lunch_end:
                     is_meal = True
             
-            # ?�?�시�?체크 (?�???�림???�성?�된 경우?�만)
+            # 저녁시간 체크 (저녁 알림이 활성화된 경우에만)
             if getattr(self, 'dinner_enabled', True):
                 dinner_start = self.dinner_time[0] * 60 + self.dinner_time[1]
-                dinner_end = dinner_start + 60  # 1?�간 ??
+                dinner_end = dinner_start + 60  # 1시간 후
                 if dinner_start <= current_time_minutes < dinner_end:
                     is_meal = True
             
             return is_meal
             
         except Exception as e:
-            print(f"?�사?�간 ?�인 ?�류: {e}")
+            print(f"식사시간 확인 오류: {e}")
             return False
     
     def check_break_time(self):
-        """?�식 ?�간 체크"""
+        """휴식 시간 체크"""
         try:
-            # ?�식 ?�림??비활?�화?�어 ?�으�?건너?�기
+            # 휴식 알림이 비활성화되어 있으면 건너뛰기
             if not getattr(self, 'break_enabled', True):
                 return
             
-            # ?�사?�간 중이�??�식 ?�업 건너?�기
+            # 식사시간 중이면 휴식 팝업 건너뛰기
             if self.is_meal_time():
-                print("?�사?�간 중이므�??�식 ?�림??건너?�니??")
+                print("식사시간 중이므로 휴식 알림을 건너뜁니다.")
                 return
             
             current_time = time.time()
             elapsed_minutes = (current_time - self.last_break_time) / 60
             
-            # ?�정???�간 간격??지?�으�??�식 ?�림
+            # 설정된 시간 간격이 지났으면 휴식 알림
             if elapsed_minutes >= self.time_interval:
-                print(f"?�식 ?�간! {self.time_interval}분이 지?�습?�다.")
+                print(f"휴식 시간! {self.time_interval}분이 지났습니다.")
                 self.show_break_popup()
-                self.last_break_time = current_time  # 마�?�??�식 ?�간 ?�데?�트
+                self.last_break_time = current_time  # 마지막 휴식 시간 업데이트
                 
         except Exception as e:
-            print(f"?�식 ?�간 체크 ?�류: {e}")
+            print(f"휴식 시간 체크 오류: {e}")
     
     def show_break_popup(self):
-        """?�식 ?�업 ?�시"""
+        """휴식 팝업 표시"""
         try:
             RestPopup()
         except Exception as e:
-            print(f"?�식 ?�업 ?�시 ?�류: {e}")
+            print(f"휴식 팝업 표시 오류: {e}")
     
     def check_meal_time(self):
-        """?�사 ?�간 체크"""
+        """식사 시간 체크"""
         try:
             now = datetime.now()
             current_hour = now.hour
             current_minute = now.minute
             current_date = now.strftime("%Y-%m-%d")
             
-            # ?�심 ?�간 체크 (?�확???�간?�만)
+            # 점심 시간 체크 (정확한 시간에만)
             if (getattr(self, 'lunch_enabled', True) and 
                 current_hour == self.lunch_time[0] and current_minute == self.lunch_time[1] and 
                 (not hasattr(self, 'lunch_shown_today') or 
                 getattr(self, 'lunch_shown_today', '') != current_date)):
-                print("?�심 ?�간?�니??")
-                self.show_meal_popup("?�심")
+                print("점심 시간입니다!")
+                self.show_meal_popup("점심")
                 self.lunch_shown_today = current_date
             
-            # ?�???�간 체크 (?�확???�간?�만)
+            # 저녁 시간 체크 (정확한 시간에만)
             if (getattr(self, 'dinner_enabled', True) and
                 current_hour == self.dinner_time[0] and current_minute == self.dinner_time[1] and
                 (not hasattr(self, 'dinner_shown_today') or 
                 getattr(self, 'dinner_shown_today', '') != current_date)):
-                print("?�???�간?�니??")
-                self.show_meal_popup("?�??)
+                print("저녁 시간입니다!")
+                self.show_meal_popup("저녁")
                 self.dinner_shown_today = current_date
                 
         except Exception as e:
-            print(f"?�사 ?�간 체크 ?�류: {e}")
+            print(f"식사 시간 체크 오류: {e}")
     
     def show_meal_popup(self, meal_type):
-        """?�사 ?�업 ?�시"""
+        """식사 팝업 표시"""
         try:
             MealPopup(meal_type)
         except Exception as e:
-            print(f"?�사 ?�업 ?�시 ?�류: {e}")
+            print(f"식사 팝업 표시 오류: {e}")
     
     def on_closing(self):
-        """�??�기 처리 - X 버튼 ?�릭 ??백그?�운?�로 ?�동"""
+        """창 닫기 처리 - X 버튼 클릭 시 백그라운드로 이동"""
         try:
-            # 창을 ?�전???�기�?
+            # 창을 완전히 숨기기
             self.clock_window.withdraw()
             
-            # ?�업?�시줄에?�도 ?�기�?
+            # 작업표시줄에서도 숨기기
             self.clock_window.attributes('-toolwindow', True)
             
-            # ?�스???�레???�이�??�성 (?�으�?
+            # 시스템 트레이 아이콘 생성 (없으면)
             if not hasattr(self, 'system_tray') or not self.system_tray:
                 self.create_system_tray()
             
-            # 기존 ?�레??창이 ?�으�??�거
+            # 기존 트레이 창이 있으면 제거
             if hasattr(self, 'tray_window') and self.tray_window:
                 try:
                     self.tray_window.destroy()
@@ -2277,26 +2274,26 @@ class ClockWindow:
                 except:
                     pass
             
-            # ?�용?�에�?백그?�운???�행 ?�림
+            # 사용자에게 백그라운드 실행 알림
             self.show_background_notification()
             
         except Exception as e:
-            print(f"백그?�운???�동 ?�류: {e}")
-            # ?�류 발생 ???�전 종료
+            print(f"백그라운드 이동 오류: {e}")
+            # 오류 발생 시 완전 종료
             self.exit_application()
     
     def show_background_notification(self):
-        """백그?�운???�행 ?�림 ?�시"""
+        """백그라운드 실행 알림 표시"""
         try:
-            # 간단???�림 ?�업 (?�동?�로 ?�라�?
+            # 간단한 알림 팝업 (자동으로 사라짐)
             notification = tk.Toplevel()
             notification.title("ClockApp")
             notification.geometry("300x100")
             notification.resizable(False, False)
             notification.attributes('-topmost', True)
-            notification.attributes('-toolwindow', True)  # ?�업?�시줄에???��?
+            notification.attributes('-toolwindow', True)  # 작업표시줄에서 숨김
             
-            # ?�면 ?�하?�에 ?�치
+            # 화면 우하단에 위치
             notification.update_idletasks()
             screen_width = notification.winfo_screenwidth()
             screen_height = notification.winfo_screenheight()
@@ -2304,46 +2301,46 @@ class ClockWindow:
             y = screen_height - 150
             notification.geometry(f"300x100+{x}+{y}")
             
-            # ?�림 ?�용
+            # 알림 내용
             frame = tk.Frame(notification, bg="#f0f0f0")
             frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
             
-            tk.Label(frame, text="?�� ClockApp", font=("Arial", 12, "bold"), bg="#f0f0f0").pack()
-            tk.Label(frame, text="백그?�운?�에???�행 중입?�다", font=("Arial", 9), bg="#f0f0f0").pack()
-            tk.Label(frame, text="?�레???�이콘을 ?�인?�세??, font=("Arial", 8), fg="gray", bg="#f0f0f0").pack()
+            tk.Label(frame, text="🕐 ClockApp", font=("Arial", 12, "bold"), bg="#f0f0f0").pack()
+            tk.Label(frame, text="백그라운드에서 실행 중입니다", font=("Arial", 9), bg="#f0f0f0").pack()
+            tk.Label(frame, text="트레이 아이콘을 확인하세요", font=("Arial", 8), fg="gray", bg="#f0f0f0").pack()
             
-            # 3�????�동?�로 ?�힘
+            # 3초 후 자동으로 닫힘
             notification.after(3000, notification.destroy)
             
         except Exception as e:
-            print(f"?�림 ?�시 ?�류: {e}")
+            print(f"알림 표시 오류: {e}")
     
     def create_system_tray(self):
-        """?�스???�레??기능 구현 (간단??버전)"""
+        """시스템 트레이 기능 구현 (간단한 버전)"""
         try:
-            # ?�클�?메뉴 ?�성
+            # 우클릭 메뉴 생성
             self.tray_menu = tk.Menu(self.clock_window, tearoff=0)
-            self.tray_menu.add_command(label="?�계 �??�기", command=self.show_window)
-            self.tray_menu.add_command(label="?�정", command=self.open_settings)
-            self.tray_menu.add_command(label="?�씨", command=self.open_weather)
+            self.tray_menu.add_command(label="ClockApp Ver2 열기", command=self.show_window)
+            self.tray_menu.add_command(label="설정", command=self.open_settings)
+            self.tray_menu.add_command(label="날씨", command=self.open_weather)
             self.tray_menu.add_separator()
-            self.tray_menu.add_command(label="정보", command=self.open_about)
+            self.tray_menu.add_command(label="Ver2 정보", command=self.open_about)
             self.tray_menu.add_separator()
             self.tray_menu.add_command(label="종료", command=self.exit_application)
             
-            # ?�스???�레???�이�??��??�이??(?��? �?
+            # 시스템 트레이 아이콘 시뮬레이션 (작은 창)
             self.create_tray_icon()
             
         except Exception as e:
-            print(f"?�스???�레???�성 ?�류: {e}")
+            print(f"시스템 트레이 생성 오류: {e}")
     
     def create_tray_icon(self):
-        """?�레???�이�?�??�성"""
+        """트레이 아이콘 창 생성"""
         try:
             self.tray_window = tk.Toplevel(self.clock_window)
-            self.tray_window.title("ClockApp - ?�레??)
+            self.tray_window.title("ClockApp - 트레이")
             
-            # ?�면 ?�하?�에 ?�치
+            # 화면 우하단에 위치
             self.tray_window.update_idletasks()
             screen_width = self.tray_window.winfo_screenwidth()
             screen_height = self.tray_window.winfo_screenheight()
@@ -2351,14 +2348,14 @@ class ClockWindow:
             tray_width = 200
             tray_height = 120
             x = screen_width - tray_width - 10
-            y = screen_height - tray_height - 50  # ?�업?�시�??�에
+            y = screen_height - tray_height - 50  # 작업표시줄 위에
             
             self.tray_window.geometry(f"{tray_width}x{tray_height}+{x}+{y}")
             self.tray_window.resizable(False, False)
-            self.tray_window.attributes('-topmost', True)  # ??�� ?�에
-            self.tray_window.attributes('-toolwindow', True)  # ?�업?�시줄에???��?
+            self.tray_window.attributes('-topmost', True)  # 항상 위에
+            self.tray_window.attributes('-toolwindow', True)  # 작업표시줄에서 숨김
             
-            # ?�이�??�정 (?�용??PNG ?�선, ?�으�?기본 ?�계 ?�이�?
+            # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
             try:
                 icon_file_path = get_icon_path()
                 if icon_file_path and os.path.exists(icon_file_path):
@@ -2366,119 +2363,119 @@ class ClockWindow:
             except:
                 pass
             
-            # ?�레???�용 (???�에 ???�게)
+            # 트레이 내용 (더 눈에 잘 띄게)
             tray_frame = tk.Frame(self.tray_window, bg="#2c3e50", relief=tk.RAISED, bd=2)
             tray_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
             
-            tk.Label(tray_frame, text="�?ClockApp", font=("Arial", 10, "bold"), bg="#f0f0f0").pack()
-            tk.Label(tray_frame, text="?�레??모드", font=("Arial", 8), fg="gray", bg="#f0f0f0").pack()
+            tk.Label(tray_frame, text="� ClockApp", font=("Arial", 10, "bold"), bg="#f0f0f0").pack()
+            tk.Label(tray_frame, text="트레이 모드", font=("Arial", 8), fg="gray", bg="#f0f0f0").pack()
             
             btn_frame = tk.Frame(tray_frame, bg="#f0f0f0")
             btn_frame.pack(pady=3)
             
-            tk.Button(btn_frame, text="?�기", command=self.show_window, width=5, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
+            tk.Button(btn_frame, text="열기", command=self.show_window, width=5, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
             tk.Button(btn_frame, text="종료", command=self.exit_application, width=5, font=("Arial", 8)).pack(side=tk.LEFT, padx=2)
             
-            # ?�클�?메뉴 바인??
+            # 우클릭 메뉴 바인딩
             self.tray_window.bind("<Button-3>", self.show_tray_menu)
             tray_frame.bind("<Button-3>", self.show_tray_menu)
             
         except Exception as e:
-            print(f"?�레???�이�??�성 ?�류: {e}")
+            print(f"트레이 아이콘 생성 오류: {e}")
     
     def update_tray_time(self):
-        """?�레??창의 ?�간 ?�데?�트"""
+        """트레이 창의 시간 업데이트"""
         try:
             if hasattr(self, 'tray_time_label') and self.tray_time_label.winfo_exists():
                 current_time = datetime.now().strftime("%H:%M:%S")
                 self.tray_time_label.config(text=current_time)
-                # 1�????�시 ?�행
+                # 1초 후 다시 실행
                 self.root.after(1000, self.update_tray_time)
         except Exception as e:
-            print(f"?�레???�간 ?�데?�트 ?�류: {e}")
+            print(f"트레이 시간 업데이트 오류: {e}")
     
     def show_tray_menu(self, event):
-        """?�레??메뉴 ?�시"""
+        """트레이 메뉴 표시"""
         try:
             self.tray_menu.post(event.x_root, event.y_root)
         except Exception as e:
-            print(f"?�레??메뉴 ?�시 ?�류: {e}")
+            print(f"트레이 메뉴 표시 오류: {e}")
     
     def show_window(self):
-        """�??�시 ?�시"""
+        """창 다시 표시"""
         try:
-            self.clock_window.deiconify()  # �??�시 ?�시
-            self.clock_window.lift()       # 창을 �??�으�?
+            self.clock_window.deiconify()  # 창 다시 표시
+            self.clock_window.lift()       # 창을 맨 앞으로
             if hasattr(self, 'tray_window'):
-                self.tray_window.destroy()  # ?�레??�??�기
+                self.tray_window.destroy()  # 트레이 창 닫기
         except Exception as e:
-            print(f"�??�시 ?�류: {e}")
+            print(f"창 표시 오류: {e}")
     
     def create_system_tray(self):
-        """?�제 Windows ?�스???�레???�이�??�성"""
+        """실제 Windows 시스템 트레이 아이콘 생성"""
         try:
-            # ?�레???�이�??��?지 가?�오�?
+            # 트레이 아이콘 이미지 가져오기
             icon_image = self.get_tray_icon_image()
             
-            # ?�레??메뉴 ?�성
+            # 트레이 메뉴 생성
             menu = Menu(
-                MenuItem("보기", self.show_window_from_tray, default=True),
+                MenuItem("Ver2 열기", self.show_window_from_tray, default=True),
                 MenuItem("설정", self.open_settings_from_tray),
                 Menu.SEPARATOR,
-                MenuItem("정보", self.open_about_from_tray),
+                MenuItem("Ver2 정보", self.open_about_from_tray),
                 Menu.SEPARATOR,
                 MenuItem("종료", self.quit_from_tray)
             )
             
-            # ?�스???�레???�이�??�성
+            # 시스템 트레이 아이콘 생성
             self.system_tray = pystray.Icon(
-                "ClockApp",
+                "ClockApp Ver2",
                 icon_image,
-                "ClockApp - ?�간 관�??�구",
+                "ClockApp Ver2 - 시간 관리 도구",
                 menu
             )
             
-            # 별도 ?�레?�에???�레???�행
+            # 별도 스레드에서 트레이 실행
             self.tray_thread = threading.Thread(target=self.system_tray.run, daemon=True)
             self.tray_thread.start()
             
-            print("Windows ?�스???�레???�이콘이 ?�성?�었?�니??")
+            print("Windows 시스템 트레이 아이콘이 생성되었습니다.")
             
         except Exception as e:
-            print(f"?�스???�레???�이�??�성 ?�류: {e}")
+            print(f"시스템 트레이 아이콘 생성 오류: {e}")
     
     def get_tray_icon_image(self):
-        """?�레?�에 ?�용???�이�??��?지 가?�오�?""
+        """트레이에 사용할 아이콘 이미지 가져오기"""
         try:
-            # 1. clock_app.ico ?�이콘이 ?�으�??�선 ?�용
+            # 1. clock_app.ico 아이콘이 있으면 우선 사용
             clock_app_ico = os.path.join(os.path.dirname(__file__), "clock_app.ico")
             if os.path.exists(clock_app_ico):
                 image = Image.open(clock_app_ico)
-                # ?�절???�기�?리사?�즈 (32x32가 ?�스???�레?�에 ?�합)
+                # 적절한 크기로 리사이즈 (32x32가 시스템 트레이에 적합)
                 image = image.resize((32, 32), Image.Resampling.LANCZOS)
                 return image
             
-            # 2. clock_icon.ico ?�이콘이 ?�으�??�용 (fallback)
+            # 2. clock_icon.ico 아이콘이 있으면 사용 (fallback)
             clock_icon_ico = os.path.join(os.path.dirname(__file__), "clock_icon.ico")
             if os.path.exists(clock_icon_ico):
                 image = Image.open(clock_icon_ico)
-                # ?�절???�기�?리사?�즈 (32x32가 ?�스???�레?�에 ?�합)
+                # 적절한 크기로 리사이즈 (32x32가 시스템 트레이에 적합)
                 image = image.resize((32, 32), Image.Resampling.LANCZOS)
                 return image
             else:
-                # 3. 기본 ?�계 ?�이�??�성 (마�?�?fallback)
+                # 3. 기본 시계 아이콘 생성 (마지막 fallback)
                 return create_clock_image(32)
         except Exception as e:
-            print(f"?�레???�이�??��?지 ?�성 ?�류: {e}")
-            # ?�류 ??기본 ?�이�?반환
+            print(f"트레이 아이콘 이미지 생성 오류: {e}")
+            # 오류 시 기본 아이콘 반환
             return create_clock_image(32)
     
     def show_window_from_tray(self, icon=None, item=None):
-        """?�레?�에??�??�기"""
+        """트레이에서 창 열기"""
         self.clock_window.after(0, self.show_window)
     
     def open_settings_from_tray(self, icon=None, item=None):
-        """?�레?�에???�정 ?�기"""
+        """트레이에서 설정 열기"""
         self.clock_window.after(0, self.open_settings)
     
     def open_about_from_tray(self, icon=None, item=None):
@@ -2486,9 +2483,9 @@ class ClockWindow:
         self.clock_window.after(0, self.open_about)
     
     def quit_from_tray(self, icon=None, item=None):
-        """?�레?�에???�플리�??�션 종료"""
+        """트레이에서 애플리케이션 종료"""
         try:
-            # ?�스???�레???�이�??�리
+            # 시스템 트레이 아이콘 정리
             if hasattr(self, 'system_tray') and self.system_tray:
                 self.system_tray.stop()
         except:
@@ -2496,41 +2493,41 @@ class ClockWindow:
         self.clock_window.after(0, self.exit_application)
     
     def exit_application(self):
-        """?�플리�??�션 ?�전 종료"""
+        """애플리케이션 완전 종료"""
         try:
-            # ?�스???�레???�리
+            # 시스템 트레이 정리
             if hasattr(self, 'system_tray') and self.system_tray:
                 try:
                     self.system_tray.stop()
                 except:
                     pass
             
-            # 기존 ?�레??�??�리
+            # 기존 트레이 창 정리
             if hasattr(self, 'tray_window') and self.tray_window:
                 try:
                     self.tray_window.destroy()
                 except:
                     pass
             
-            # 메인 �?종료
+            # 메인 창 종료
             self.clock_window.quit()
             self.clock_window.destroy()
         except:
             pass
     
     def open_settings(self, event=None):
-        """?�정 �??�기"""
+        """설정 창 열기"""
         try:
             SettingsWindow(self)
         except Exception as e:
-            print(f"?�정 �??�기 ?�류: {e}")
+            print(f"설정 창 열기 오류: {e}")
     
     def open_weather(self):
-        """?�씨 �??�기"""
+        """날씨 창 열기"""
         try:
             WeatherWindow(self)
         except Exception as e:
-            print(f"?�씨 �??�기 ?�류: {e}")
+            print(f"날씨 창 열기 오류: {e}")
     
     def open_about(self):
         """정보 창 열기"""
@@ -2541,7 +2538,7 @@ class ClockWindow:
     
     def update_time_settings(self, minutes, lunch_hour, lunch_minute, dinner_hour, dinner_minute, 
                            break_enabled=True, lunch_enabled=True, dinner_enabled=True):
-        """?�간 ?�정 ?�데?�트"""
+        """시간 설정 업데이트"""
         self.time_interval = minutes
         self.lunch_time = (lunch_hour, lunch_minute)
         self.dinner_time = (dinner_hour, dinner_minute)
@@ -2549,42 +2546,42 @@ class ClockWindow:
         self.lunch_enabled = lunch_enabled
         self.dinner_enabled = dinner_enabled
         
-        # ?�식 ?�?�머 리셋 (?�로??간격 ?�용)
+        # 휴식 타이머 리셋 (새로운 간격 적용)
         self.last_break_time = time.time()
         
-        print(f"?�정 ?�데?�트??- 간격: {minutes}�? ?�심: {lunch_hour:02d}:{lunch_minute:02d}, ?�?? {dinner_hour:02d}:{dinner_minute:02d}")
-        print(f"?�성???�태 - ?�식: {break_enabled}, ?�심: {lunch_enabled}, ?�?? {dinner_enabled}")
-        print("?�식 ?�?�머가 리셋?�었?�니??")
+        print(f"설정 업데이트됨 - 간격: {minutes}분, 점심: {lunch_hour:02d}:{lunch_minute:02d}, 저녁: {dinner_hour:02d}:{dinner_minute:02d}")
+        print(f"활성화 상태 - 휴식: {break_enabled}, 점심: {lunch_enabled}, 저녁: {dinner_enabled}")
+        print("휴식 타이머가 리셋되었습니다.")
 
 def create_hello_window():
-    """?�사 �??�성"""
-    # ?�행 ?�작 ???�이�??�일 ?�성
-    print("?�트 ?�이�??�일 ?�성 �?.")
+    """인사 창 생성"""
+    # 실행 시작 시 아이콘 파일 생성
+    print("하트 아이콘 파일 생성 중..")
     icon_file_path = create_icon_file()
 
-    # 커스?� ?�업 �?만들�?
+    # 커스텀 팝업 창 만들기
     root = tk.Tk()
     root.geometry("300x180")
     root.resizable(False, False)
-    root.overrideredirect(True)  # 기본 ?�?��?�??�거
+    root.overrideredirect(True)  # 기본 타이틀바 제거
 
-    # ?�이�??�정
+    # 아이콘 설정
     try:
         if icon_file_path and os.path.exists(icon_file_path):
             root.iconbitmap(icon_file_path)
-            print("?�성???�트 ?�이�??�용 ?�공")
+            print("생성된 하트 아이콘 적용 성공")
     except Exception as e:
-        print(f"?�이�??�정 ?�패: {e}")
+        print(f"아이콘 설정 실패: {e}")
 
-    # 창을 ?�면 중앙???�치
+    # 창을 화면 중앙에 위치
     root.eval('tk::PlaceWindow . center')
 
-    # 커스?� ?�?��?�?만들�?
+    # 커스텀 타이틀바 만들기
     title_frame = tk.Frame(root, bg="#d0d0d0", height=30)
     title_frame.pack(fill=tk.X, side=tk.TOP)
     title_frame.pack_propagate(False)
 
-    # ?�래�?기능???�한 변??
+    # 드래그 기능을 위한 변수
     drag_data = {"x": 0, "y": 0}
 
     def start_drag(event):
@@ -2596,21 +2593,21 @@ def create_hello_window():
         y = root.winfo_y() + event.y - drag_data["y"]
         root.geometry(f"+{x}+{y}")
 
-    # ?�?��?바에 ?�래�??�벤??바인??
+    # 타이틀바에 드래그 이벤트 바인딩
     title_frame.bind("<Button-1>", start_drag)
     title_frame.bind("<B1-Motion>", on_drag)
 
-    # ?�?��?�??�용 (?�쪽 ?�렬)
+    # 타이틀바 내용 (왼쪽 정렬)
     title_content = tk.Frame(title_frame, bg="#d0d0d0")
     title_content.pack(side=tk.LEFT, padx=10, pady=5)
 
-    # ?�기 버튼 (?�른�??�렬)
+    # 닫기 버튼 (오른쪽 정렬)
     close_button = tk.Button(title_frame, text="×", command=root.destroy, 
                            bg="#d0d0d0", fg="black", font=("Arial", 12, "bold"),
                            width=3, height=1, relief=tk.FLAT)
     close_button.pack(side=tk.RIGHT, padx=5, pady=5)
 
-    # ?�기 버튼???�버 ?�과 추�?
+    # 닫기 버튼에 호버 효과 추가
     def on_enter(e):
         close_button.config(bg="#ff4444", fg="white")
     
@@ -2621,20 +2618,20 @@ def create_hello_window():
     close_button.bind("<Leave>", on_leave)
 
     try:
-        # ?�?��?바용 ?��? 마우???��?지
+        # 타이틀바용 작은 마우스 이미지
         title_clock = create_clock_image(20)
         if title_clock:
             title_clock_photo = ImageTk.PhotoImage(title_clock)
             
-            # ?�계 ?��?지
+            # 시계 이미지
             title_clock_label = tk.Label(title_content, image=title_clock_photo, bg="#d0d0d0")
             title_clock_label.pack(side=tk.LEFT, padx=(0, 5))
 
-            # ?�사 ?�스??
-            title_text = tk.Label(title_content, text="?�녕?�세??", bg="#d0d0d0", font=("Arial", 10, "bold"))       
+            # 인사 텍스트
+            title_text = tk.Label(title_content, text="안녕하세요!", bg="#d0d0d0", font=("Arial", 10, "bold"))       
             title_text.pack(side=tk.LEFT)
 
-            # ?�래�??�벤??바인??
+            # 드래그 이벤트 바인딩
             title_content.bind("<Button-1>", start_drag)
             title_content.bind("<B1-Motion>", on_drag)
             title_clock_label.bind("<Button-1>", start_drag)
@@ -2642,41 +2639,41 @@ def create_hello_window():
             title_text.bind("<Button-1>", start_drag)
             title_text.bind("<B1-Motion>", on_drag)
         else:
-            raise Exception("?�계 ?��?지 ?�성 ?�패")
+            raise Exception("시계 이미지 생성 실패")
 
     except Exception as e:
-        print(f"?�?��?�??�트 ?��?지 ?�류: {e}")
-        title_text = tk.Label(title_content, text="???�녕?�세??", bg="#d0d0d0", font=("Arial", 10, "bold"))   
+        print(f"타이틀바 하트 이미지 오류: {e}")
+        title_text = tk.Label(title_content, text="♥ 안녕하세요!", bg="#d0d0d0", font=("Arial", 10, "bold"))   
         title_text.pack()
         title_text.bind("<Button-1>", start_drag)
         title_text.bind("<B1-Motion>", on_drag)
 
-    # 메인 컨텐�??�역
+    # 메인 컨텐츠 영역
     content_frame = tk.Frame(root)
     content_frame.pack(fill=tk.BOTH, expand=True)
 
     try:
-        # 메인 ?�계 ?��?지
+        # 메인 시계 이미지
         clock_image_original = create_clock_image(64)
         if clock_image_original:
-            # 마우???��?지?� ?�스?��? ?�께 ?�시?�는 ?�레??
+            # 마우스 이미지와 텍스트를 함께 표시하는 프레임
             main_frame = tk.Frame(content_frame)
             main_frame.pack(expand=True)
 
-            # 마우???��?지�??�한 고정 ?�기 ?�레??
+            # 마우스 이미지를 위한 고정 크기 프레임
             mouse_frame = tk.Frame(main_frame, width=60, height=60)
             mouse_frame.pack(side=tk.LEFT, padx=(0, 10))
             mouse_frame.pack_propagate(False)
 
-            # 마우???��?지 ?�벨
+            # 마우스 이미지 라벨
             clock_label = tk.Label(mouse_frame)
             clock_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-            # ?�녕 ?�스???�벨
-            text_label = tk.Label(main_frame, text="?�녕", font=("Arial", 16))
+            # 안녕 텍스트 라벨
+            text_label = tk.Label(main_frame, text="안녕", font=("Arial", 16))
             text_label.pack(side=tk.LEFT)
 
-            # ?�니메이??변??
+            # 애니메이션 변수
             import math
             animation_step = 0
             min_size = 32
@@ -2705,23 +2702,23 @@ def create_hello_window():
                 animation_step += 1
                 root.after(17, animate_clock)
 
-            # ?�니메이???�작
+            # 애니메이션 시작
             animate_clock()
         else:
-            raise Exception("메인 마우???��?지 ?�성 ?�패")
+            raise Exception("메인 마우스 이미지 생성 실패")
 
     except Exception as e:
-        print(f"메인 ?�트 ?��?지 ?�류: {e}")
-        label = tk.Label(content_frame, text="???�녕", font=("Arial", 16))
+        print(f"메인 하트 이미지 오류: {e}")
+        label = tk.Label(content_frame, text="♥ 안녕", font=("Arial", 16))
         label.pack(expand=True)
 
-    # ?�계 창을 ?�는 ?�수
+    # 시계 창을 여는 함수
     def show_clock():
-        root.withdraw()  # ?�사�??�기�?
+        root.withdraw()  # 인사창 숨기기
         try:
-            ClockWindow()  # ?�계�??�기
+            ClockWindow()  # 시계창 열기
         except Exception as e:
-            print(f"?�계 �??�류: {e}")
+            print(f"시계 창 오류: {e}")
         finally:
             try:
                 root.quit()
@@ -2729,50 +2726,72 @@ def create_hello_window():
             except:
                 pass
 
-    # ?�인 버튼
-    button = tk.Button(content_frame, text="?�인", command=show_clock, width=10)
+    # 확인 버튼
+    button = tk.Button(content_frame, text="확인", command=show_clock, width=10)
     button.pack(pady=10)
 
     root.mainloop()
 
 if __name__ == "__main__":
-    # Win32 뮤텍?��? ?�용??중복 ?�행 방�?
-    MUTEX_NAME = "Global\\ClockApp_SingleInstance_Mutex"
+    # Win32 뮤텍스를 사용한 중복 실행 방지 (Ver2 전용)
+    MUTEX_NAME_V2 = "Global\\ClockApp_Ver2_SingleInstance_Mutex"
+    MUTEX_NAME_V1 = "Global\\ClockApp_SingleInstance_Mutex"  # Ver1 감지용
     
-    # Win32 API ?�수 ?�언
+    # Win32 API 함수 선언
     kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
     CreateMutexW = kernel32.CreateMutexW
     CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
     CreateMutexW.restype = wintypes.HANDLE
     
+    OpenMutexW = kernel32.OpenMutexW
+    OpenMutexW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
+    OpenMutexW.restype = wintypes.HANDLE
+    
     GetLastError = kernel32.GetLastError
     ERROR_ALREADY_EXISTS = 183
     
-    # 뮤텍???�성 ?�도
-    mutex_handle = CreateMutexW(None, False, MUTEX_NAME)
+    # Ver1이 실행 중인지 확인
+    try:
+        v1_mutex = OpenMutexW(0x100000, False, MUTEX_NAME_V1)  # SYNCHRONIZE access
+        if v1_mutex:
+            kernel32.CloseHandle(v1_mutex)
+            MessageBoxW = ctypes.windll.user32.MessageBoxW
+            result = MessageBoxW(None, 
+                               "ClockApp Ver1이 실행 중입니다.\n"
+                               "Ver2를 실행하시겠습니까?\n"
+                               "(Ver1과 Ver2는 독립적으로 실행됩니다)",
+                               "ClockApp Ver2", 
+                               0x24)  # MB_YESNO | MB_ICONQUESTION
+            if result != 6:  # IDYES가 아니면 종료
+                sys.exit(0)
+    except:
+        pass  # Ver1이 실행되지 않음
+    
+    # Ver2 뮤텍스 생성 시도
+    mutex_handle = CreateMutexW(None, False, MUTEX_NAME_V2)
     
     if GetLastError() == ERROR_ALREADY_EXISTS:
-        print("ClockApp???��? ?�행 중입?�다.")
-        # 메시지 박스 ?�시 (콘솔???�을 ???�으므�?
+        print("ClockApp Ver2가 이미 실행 중입니다.")
+        # 메시지 박스 표시 (콘솔이 없을 수 있으므로)
         MessageBoxW = ctypes.windll.user32.MessageBoxW
-        MessageBoxW(None, "ClockApp???��? ?�행 중입?�다.\n?�스???�레?��? ?�인?�주?�요.", 
-                   "ClockApp", 0x30)  # 0x30 = MB_ICONWARNING
+        MessageBoxW(None, "ClockApp Ver2가 이미 실행 중입니다.\n시스템 트레이를 확인해주세요.", 
+                   "ClockApp Ver2", 0x30)  # 0x30 = MB_ICONWARNING
         sys.exit(0)
     
     try:
-        # 명령???�수 처리
+        # 명령행 인수 처리
         import argparse
-        parser = argparse.ArgumentParser(description='MouseClock - ?�간 관�??�로그램')
+        parser = argparse.ArgumentParser(description='MouseClock - 시간 관리 프로그램')
         parser.add_argument('--minimized', action='store_true', 
-                           help='?�스???�레?�로 최소?�된 ?�태�??�작')
+                           help='시스템 트레이로 최소화된 상태로 시작')
         args = parser.parse_args()
         
-        # ?�사�??�이 바로 ?�계�??�행
+        # 인사창 없이 바로 시계창 실행
         try:
             ClockWindow(start_minimized=args.minimized)
         except Exception as e:
-            print(f"?�계 �??�행 ?�류: {e}")
+            print(f"시계 창 실행 오류: {e}")
     finally:
-        # 뮤텍???�제 (?�로그램 종료 ???�동?�로 ?�제?��?�?명시?�으�?처리)
+        # 뮤텍스 해제 (프로그램 종료 시 자동으로 해제되지만 명시적으로 처리)
         if mutex_handle:
             kernel32.CloseHandle(mutex_handle)

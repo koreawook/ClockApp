@@ -1,0 +1,63 @@
+{
+  "timestamp": "2025-10-22T19:13:22.864113",
+  "data": {
+    "current": {
+      "temp": "16°C",
+      "humidity": "72%",
+      "wind": "1.4m/s",
+      "description": "Partly cloudy",
+      "icon": "🌤️"
+    },
+    "hourly": [
+      {
+        "time": "00:00",
+        "icon": "☀️",
+        "temp": "10°C",
+        "desc": "Clear "
+      },
+      {
+        "time": "03:00",
+        "icon": "☀️",
+        "temp": "9°C",
+        "desc": "Clear "
+      },
+      {
+        "time": "06:00",
+        "icon": "☀️",
+        "temp": "9°C",
+        "desc": "Clear "
+      },
+      {
+        "time": "09:00",
+        "icon": "🌤️",
+        "temp": "12°C",
+        "desc": "Sunny"
+      },
+      {
+        "time": "12:00",
+        "icon": "🌤️",
+        "temp": "17°C",
+        "desc": "Sunny"
+      },
+      {
+        "time": "15:00",
+        "icon": "🌤️",
+        "temp": "18°C",
+        "desc": "Cloudy "
+      },
+      {
+        "time": "18:00",
+        "icon": "🌤️",
+        "temp": "17°C",
+        "desc": "Partly Cloudy "
+      },
+      {
+        "time": "21:00",
+        "icon": "🌤️",
+        "temp": "15°C",
+        "desc": "Partly Cloudy "
+      }
+    ],
+    "location": "Seongnam-si, Gyeonggi-do"
+  }
+}
