@@ -113,9 +113,9 @@
                     <p>👥 이미 10,000명의 직장인이 건강한 업무환경을 만들고 있습니다!</p>
                 </div>
                 <div class="download-buttons">
-                    <a href="./ClockApp-v1.0.0.zip" class="btn btn-download" download="ClockApp-v1.0.0.zip" onclick="showDownloadMessage()">
+                    <a href="ClockApp-v1.0.0-Setup.zip" class="btn btn-download" download="ClockApp-v1.0.0-Setup.zip" onclick="showDownloadMessage()">
                         <i class="fas fa-download"></i>
-                        💪 건강 지키기 시작하기
+                        💪 건강 지키기 시작하기 (ZIP 파일)
                     </a>
                     <div class="download-message" id="downloadMessage" style="display: none;">
                         <div class="success-message">
@@ -194,6 +194,7 @@
 
     <script>
         function showDownloadMessage() {
+            // 다운로드 메시지 표시
             const messageDiv = document.getElementById('downloadMessage');
             messageDiv.style.display = 'block';
             messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
