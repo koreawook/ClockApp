@@ -47,6 +47,8 @@ import pystray
 from pystray import MenuItem, Menu
 import ctypes
 from ctypes import wintypes
+import random
+import glob
 
 # SSL 인증서 검증 우회 (개발용)
 ssl_context = ssl.create_default_context()
@@ -123,6 +125,65 @@ def get_colorful_break_text(remaining_mins, remaining_secs, is_meal_time=False):
         return f"⏰ 다음 휴식: {remaining_secs}초"
     else:
         return "⏰ 휴식시간!"
+
+class StretchImageManager:
+    """스트레칭 이미지를 랜덤하게 관리하는 클래스"""
+    def __init__(self, image_folder="stretchimage"):
+        self.image_folder = image_folder
+        self.image_history = []  # 최근 표시된 이미지 기록
+        self.max_history = 5  # 최근 5개 이미지 기억
+        self.available_images = self._load_available_images()
+    
+    def _load_available_images(self):
+        """폴더 내의 모든 이미지 파일 로드"""
+        try:
+            if not os.path.exists(self.image_folder):
+                print(f"스트레칭 이미지 폴더가 없습니다: {self.image_folder}")
+                return []
+            
+            # 지원하는 이미지 확장자
+            image_extensions = ['*.png', '*.jpg', '*.jpeg', '*.gif', '*.bmp']
+            images = []
+            
+            for ext in image_extensions:
+                pattern = os.path.join(self.image_folder, ext)
+                images.extend(glob.glob(pattern))
+            
+            print(f"스트레칭 이미지 {len(images)}개 발견: {images}")
+            return images
+        except Exception as e:
+            print(f"이미지 로드 오류: {e}")
+            return []
+    
+    def get_random_image(self):
+        """랜덤 이미지를 선택 (최근 이미지는 제외)"""
+        if not self.available_images:
+            return None
+        
+        # 이미지가 충분하지 않으면 히스토리 무시
+        if len(self.available_images) <= self.max_history:
+            return random.choice(self.available_images)
+        
+        # 히스토리에 없는 이미지 필터링
+        available = [img for img in self.available_images if img not in self.image_history]
+        
+        # 모든 이미지가 히스토리에 있으면 히스토리 초기화
+        if not available:
+            self.image_history.clear()
+            available = self.available_images.copy()
+        
+        # 랜덤 선택
+        selected = random.choice(available)
+        
+        # 히스토리 업데이트
+        self.image_history.append(selected)
+        if len(self.image_history) > self.max_history:
+            self.image_history.pop(0)
+        
+        return selected
+
+# 전역 이미지 매니저 인스턴스
+stretch_image_manager = StretchImageManager()
 
 def get_weather_type_from_icon(icon_text):
     """이모지 아이콘에서 날씨 타입 추출"""
@@ -338,6 +399,24 @@ def create_icon_file():
         print(f"아이콘 파일 생성 실패: {e}")
         return None
 
+def get_settings_file_path():
+    """설정 파일 경로 반환 (권한 문제 해결을 위해 AppData 사용)"""
+    if getattr(sys, 'frozen', False):
+        # 패키징된 실행파일인 경우 사용자 AppData 폴더 사용
+        appdata_path = os.path.expanduser("~\\AppData\\Roaming\\ClockApp-Ver2")
+        if not os.path.exists(appdata_path):
+            try:
+                os.makedirs(appdata_path)
+                print(f"설정 폴더 생성: {appdata_path}")
+            except Exception as e:
+                print(f"설정 폴더 생성 실패: {e}")
+                # 실패 시 현재 폴더 사용
+                return os.path.join(os.path.dirname(sys.executable), "clock_settings_ver2.json")
+        return os.path.join(appdata_path, "clock_settings_ver2.json")
+    else:
+        # 개발 중에는 현재 스크립트 폴더 사용
+        return os.path.join(os.path.dirname(__file__), "clock_settings_ver2.json")
+
 def load_settings():
     """설정 파일에서 설정값 불러오기"""
     default_settings = {
@@ -352,7 +431,9 @@ def load_settings():
     }
     
     try:
-        settings_file = os.path.join(os.path.dirname(__file__), "clock_settings.json")
+        settings_file = get_settings_file_path()
+        print(f"설정 파일 경로: {settings_file}")
+        
         if os.path.exists(settings_file):
             with open(settings_file, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
@@ -368,7 +449,9 @@ def load_settings():
 def load_settings_from_file():
     """설정 파일에서 설정값 로드"""
     try:
-        settings_file = os.path.join(os.path.dirname(__file__), "clock_settings.json")
+        settings_file = get_settings_file_path()
+        print(f"설정 파일 경로: {settings_file}")
+        
         if os.path.exists(settings_file):
             with open(settings_file, 'r', encoding='utf-8') as f:
                 settings = json.load(f)
@@ -384,7 +467,15 @@ def load_settings_from_file():
 def save_settings_to_file(settings):
     """설정값을 파일에 저장"""
     try:
-        settings_file = os.path.join(os.path.dirname(__file__), "clock_settings.json")
+        settings_file = get_settings_file_path()
+        print(f"설정 저장 경로: {settings_file}")
+        
+        # 설정 폴더가 없으면 생성
+        settings_dir = os.path.dirname(settings_file)
+        if not os.path.exists(settings_dir):
+            os.makedirs(settings_dir)
+            print(f"설정 폴더 생성: {settings_dir}")
+        
         with open(settings_file, 'w', encoding='utf-8') as f:
             json.dump(settings, f, indent=4, ensure_ascii=False)
         print(f"설정 저장 성공: {settings}")
@@ -695,7 +786,18 @@ class RestPopup:
     def __init__(self):
         self.popup = tk.Toplevel()
         self.popup.title("ClockApp Ver2 - 휴식 알림")
-        self.popup.geometry("400x380")  # 원형 진행바를 위한 더 큰 크기
+        
+        # 스트레칭 이미지 로드
+        self.stretch_image = None
+        self.stretch_photo = None
+        self.load_stretch_image()
+        
+        # 이미지가 있으면 더 큰 크기로 설정 (가로로 넓게)
+        if self.stretch_image:
+            self.popup.geometry("480x450")
+        else:
+            self.popup.geometry("400x350")
+        
         self.popup.resizable(False, False)
         self.popup.attributes('-topmost', True)  # 항상 위에 표시
         
@@ -720,6 +822,28 @@ class RestPopup:
         
         # 타이머 시작
         self.update_timer()
+    
+    def load_stretch_image(self):
+        """스트레칭 이미지를 랜덤으로 로드"""
+        try:
+            image_path = stretch_image_manager.get_random_image()
+            if image_path and os.path.exists(image_path):
+                img = Image.open(image_path)
+                
+                # 이미지 크기 조정 (너비 최대 220px로 축소, 높이는 비율 유지)
+                max_width = 220
+                max_height = 250
+                
+                # 비율 유지하며 크기 조정
+                img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+                
+                self.stretch_image = img
+                print(f"스트레칭 이미지 로드 성공: {image_path}")
+            else:
+                print("사용 가능한 스트레칭 이미지가 없습니다.")
+        except Exception as e:
+            print(f"스트레칭 이미지 로드 오류: {e}")
+            self.stretch_image = None
         
     def close_popup(self):
         """팝업 닫기"""
@@ -736,9 +860,13 @@ class RestPopup:
         screen_width = self.popup.winfo_screenwidth()
         screen_height = self.popup.winfo_screenheight()
         
-        # 팝업 크기
-        popup_width = 400
-        popup_height = 380
+        # 팝업 크기 (이미지 유무에 따라 다름)
+        if self.stretch_image:
+            popup_width = 480
+            popup_height = 450
+        else:
+            popup_width = 400
+            popup_height = 350
         
         # 중앙 위치 계산
         x = (screen_width - popup_width) // 2
@@ -751,20 +879,10 @@ class RestPopup:
         # 팝업 배경색 설정
         self.popup.configure(bg="#f0f8ff")
         
-        # 상단 헤더 영역 (그라데이션 효과)
-        header_frame = tk.Frame(self.popup, bg="#4a90e2", height=100)
+        # 상단 헤더 영역 (간결하게)
+        header_frame = tk.Frame(self.popup, bg="#4a90e2", height=60)
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
-        
-        # 큰 이모지
-        emoji_label = tk.Label(
-            header_frame,
-            text="🌟",
-            font=("Arial", 36),
-            bg="#4a90e2",
-            fg="white"
-        )
-        emoji_label.pack(pady=(15, 5))
         
         # 메인 메시지
         message_label = tk.Label(
@@ -774,31 +892,55 @@ class RestPopup:
             fg="white",
             bg="#4a90e2"
         )
-        message_label.pack()
+        message_label.pack(pady=15)
         
         # 메인 컨텐츠 영역
         content_frame = tk.Frame(self.popup, bg="#f0f8ff")
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
         # 부가 메시지
         sub_message = tk.Label(
             content_frame,
-            text="눈을 감고 잠시 휴식을 취하세요",
-            font=("Segoe UI", 11),
+            text="마우스에서 손을 떼고 잠시 휴식을 취하세요",
+            font=("Segoe UI", 12),
             fg="#5a6c7d",
             bg="#f0f8ff"
         )
-        sub_message.pack(pady=(0, 15))
+        sub_message.pack(pady=(0, 8))
         
-        # 원형 진행 표시 영역 (중앙 정렬을 위한 컨테이너)
-        progress_container = tk.Frame(content_frame, bg="#f0f8ff")
-        progress_container.pack(pady=10)
+        # 가로 레이아웃 (이미지가 있을 때)
+        if self.stretch_image:
+            horizontal_container = tk.Frame(content_frame, bg="#f0f8ff")
+            horizontal_container.pack(pady=3)
+            
+            # 왼쪽: 스트레칭 이미지
+            image_frame = tk.Frame(horizontal_container, bg="#f0f8ff")
+            image_frame.pack(side=tk.LEFT, padx=(5, 10))
+            
+            # 이미지 표시
+            self.stretch_photo = ImageTk.PhotoImage(self.stretch_image)
+            image_label = tk.Label(
+                image_frame,
+                image=self.stretch_photo,
+                bg="#f0f8ff",
+                relief=tk.FLAT,
+                borderwidth=0
+            )
+            image_label.pack()
+            
+            # 오른쪽: 원형 진행 표시 (크게)
+            progress_container = tk.Frame(horizontal_container, bg="#f0f8ff")
+            progress_container.pack(side=tk.LEFT)
+        else:
+            # 이미지가 없으면 중앙에 진행바만
+            progress_container = tk.Frame(content_frame, bg="#f0f8ff")
+            progress_container.pack(pady=10)
         
-        # 원형 캔버스 (진행바와 텍스트를 모두 그릴 캔버스)
+        # 원형 캔버스 (진행바와 텍스트를 모두 그릴 캔버스 - 크기 증가)
         self.rest_progress_canvas = tk.Canvas(
             progress_container, 
-            width=120, 
-            height=120, 
+            width=180, 
+            height=180, 
             bg="#f0f8ff",
             highlightthickness=0
         )
@@ -810,20 +952,20 @@ class RestPopup:
         
         # 하단 버튼 영역
         button_frame = tk.Frame(self.popup, bg="#f0f8ff")
-        button_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
+        button_frame.pack(fill=tk.X, padx=15, pady=(5, 12))
         
         # 닫기 버튼 (모던한 플랫 스타일)
         self.close_button = tk.Button(
             button_frame,
             text="확인 (10초 후)",
             state=tk.DISABLED,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 9, "bold"),
             bg="#bdc3c7",
             fg="white",
             relief=tk.FLAT,
             bd=0,
-            padx=30,
-            pady=12,
+            padx=20,
+            pady=8,
             cursor="hand2",
             command=self.close_popup
         )
@@ -870,9 +1012,9 @@ class RestPopup:
             # 캔버스 지우기
             self.rest_progress_canvas.delete("all")
             
-            # 원 중심 및 반지름
-            center_x, center_y = 60, 60
-            radius = 50
+            # 원 중심 및 반지름 (캔버스 크기 180x180에 맞춤)
+            center_x, center_y = 90, 90
+            radius = 75
             
             # 배경 원 (연한 회색)
             self.rest_progress_canvas.create_oval(
@@ -894,32 +1036,32 @@ class RestPopup:
                 # 각도 계산 (0도가 위쪽, 시계방향)
                 extent = -360 * remaining_ratio
                 
-                # 원호 그리기
+                # 원호 그리기 (두께 증가)
                 self.rest_progress_canvas.create_arc(
-                    center_x - radius + 5, center_y - radius + 5,
-                    center_x + radius - 5, center_y + radius - 5,
+                    center_x - radius + 8, center_y - radius + 8,
+                    center_x + radius - 8, center_y + radius - 8,
                     start=90, extent=extent,
-                    fill=color, outline=color, width=10,
+                    fill=color, outline=color, width=14,
                     style=tk.ARC
                 )
             
             # 타이머 텍스트를 캔버스 중앙에 직접 그리기 (투명 배경)
             timer_text = f"{max(0, self.remaining_time)}"  # 음수 방지
             
-            # 큰 숫자 (메인 타이머)
+            # 큰 숫자 (메인 타이머 - 크기 증가)
             self.rest_progress_canvas.create_text(
-                center_x, center_y - 8,  # 약간 위로
+                center_x, center_y - 12,  # 약간 위로
                 text=timer_text,
-                font=("Segoe UI", 24, "bold"),
+                font=("Segoe UI", 36, "bold"),
                 fill="#4a90e2",
                 anchor=tk.CENTER
             )
             
             # "초" 텍스트 (작은 글씨로 아래에)
             self.rest_progress_canvas.create_text(
-                center_x, center_y + 15,  # 숫자 아래
+                center_x, center_y + 22,  # 숫자 아래
                 text="초",
-                font=("Segoe UI", 10),
+                font=("Segoe UI", 13),
                 fill="#7f8c8d",
                 anchor=tk.CENTER
             )
@@ -1939,8 +2081,8 @@ class ClockWindow:
         # 시작 시 최소화 여부 저장
         self.start_minimized = start_minimized
         
-        # 설정 로드
-        self.settings = load_settings_from_file() or {}
+        # 설정 로드 (일관된 함수 사용)
+        self.settings = load_settings()
         
         # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
@@ -2059,17 +2201,21 @@ class ClockWindow:
         settings_btn.bind("<Enter>", on_enter_settings)
         settings_btn.bind("<Leave>", on_leave_settings)
         
-        # 저장된 설정값 불러오기
-        saved_settings = load_settings()
-        self.time_interval = saved_settings["time_interval"]
-        self.lunch_time = (saved_settings["lunch_hour"], saved_settings["lunch_minute"])
-        self.dinner_time = (saved_settings["dinner_hour"], saved_settings["dinner_minute"])
-        self.break_enabled = saved_settings.get("break_enabled", True)
-        self.lunch_enabled = saved_settings.get("lunch_enabled", True)
-        self.dinner_enabled = saved_settings.get("dinner_enabled", True)
+        # 저장된 설정값 사용 (이미 초기화에서 로드됨)
+        self.time_interval = self.settings["time_interval"]
+        self.lunch_time = (self.settings["lunch_hour"], self.settings["lunch_minute"])
+        self.dinner_time = (self.settings["dinner_hour"], self.settings["dinner_minute"])
+        self.break_enabled = self.settings.get("break_enabled", True)
+        self.lunch_enabled = self.settings.get("lunch_enabled", True)
+        self.dinner_enabled = self.settings.get("dinner_enabled", True)
         
-        print(f"불러온 설정 - 간격: {self.time_interval}분, 점심: {self.lunch_time[0]:02d}:{self.lunch_time[1]:02d}, 저녁: {self.dinner_time[0]:02d}:{self.dinner_time[1]:02d}")
-        print(f"활성화 상태 - 휴식: {self.break_enabled}, 점심: {self.lunch_enabled}, 저녁: {self.dinner_enabled}")
+        print("=" * 50)
+        print("📁 설정 로드 결과:")
+        print(f"   🔄 휴식 간격: {self.time_interval}분")
+        print(f"   🍱 점심시간: {self.lunch_time[0]:02d}:{self.lunch_time[1]:02d} ({'활성화' if self.lunch_enabled else '비활성화'})")
+        print(f"   🍽️ 저녁시간: {self.dinner_time[0]:02d}:{self.dinner_time[1]:02d} ({'활성화' if self.dinner_enabled else '비활성화'})")
+        print(f"   🔔 휴식 알림: {'활성화' if self.break_enabled else '비활성화'}")
+        print("=" * 50)
         
         # 휴식 타이머 관련 변수
         self.last_break_time = time.time()  # 마지막 휴식 알림 시간

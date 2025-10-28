@@ -1,0 +1,10 @@
+{
+    "time_interval": 1,
+    "lunch_hour": 12,
+    "lunch_minute": 30,
+    "dinner_hour": 19,
+    "dinner_minute": 0,
+    "break_enabled": true,
+    "lunch_enabled": true,
+    "dinner_enabled": true
+}
