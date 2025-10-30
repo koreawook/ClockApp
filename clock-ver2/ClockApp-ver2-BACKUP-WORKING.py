@@ -50,19 +50,6 @@ from ctypes import wintypes
 import random
 import glob
 
-# 강제 휴식 모드를 위한 Windows API 함수들
-user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
-
-# 키보드/마우스 입력 차단을 위한 훅
-WH_KEYBOARD_LL = 13
-WH_MOUSE_LL = 14
-HC_ACTION = 0
-
-# 훅 핸들 저장용 전역 변수
-keyboard_hook = None
-mouse_hook = None
-
 # SSL 인증서 검증 우회 (개발용)
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -71,9 +58,6 @@ ssl_context.verify_mode = ssl.CERT_NONE
 # 날씨 캐시 설정
 WEATHER_CACHE_FILE = "weather_cache.json"
 WEATHER_CACHE_DURATION = 7200  # 2시간 (초 단위)
-
-# 레벨업 팝업 전역 관리
-current_levelup_popup = None
 
 def load_weather_cache():
     """날씨 캐시 로드"""
@@ -452,121 +436,6 @@ def get_settings_file_path():
         # 개발 중에는 현재 스크립트 폴더 사용
         return os.path.join(os.path.dirname(__file__), "clock_settings_ver2.json")
 
-def debug_log(message):
-    """전역 디버그 로그 함수"""
-    try:
-        import datetime
-        debug_log_path = "level_data_debug.txt"
-        timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        log_message = f"[{timestamp}] {message}\n"
-        with open(debug_log_path, "a", encoding="utf-8") as f:
-            f.write(log_message)
-        print(log_message.strip())
-    except:
-        print(message)
-
-def get_rest_messages_file_path():
-    """휴식 메시지 파일 경로 반환"""
-    if getattr(sys, 'frozen', False):
-        # 패키징된 실행파일인 경우 사용자 AppData 폴더 사용
-        appdata_path = os.path.expanduser("~\\AppData\\Roaming\\ClockApp-Ver2")
-        if not os.path.exists(appdata_path):
-            try:
-                os.makedirs(appdata_path)
-            except Exception as e:
-                print(f"휴식 메시지 폴더 생성 실패: {e}")
-                return os.path.join(os.path.dirname(sys.executable), "rest_messages.json")
-        return os.path.join(appdata_path, "rest_messages.json")
-    else:
-        # 개발 중에는 현재 스크립트 폴더 사용
-        return os.path.join(os.path.dirname(__file__), "rest_messages.json")
-
-def create_default_rest_messages():
-    """기본 휴식 메시지 JSON 파일 생성"""
-    default_messages = {
-        "messages": [
-            "눈을 감고 잠시 휴식을 취하세요",
-            "깊게 숨을 들이마시고 천천히 내쉬세요",
-            "어깨와 목의 긴장을 풀어보세요",
-            "잠시 창밖을 바라보며 마음을 비워보세요",
-            "손목과 손가락을 가볍게 스트레칭하세요",
-            "등을 곧게 펴고 몸의 균형을 맞춰보세요",
-            "5분간 자리에서 일어나 가볍게 걸어보세요",
-            "따뜻한 차 한 잔과 함께 잠시 쉼을 가져보세요",
-            "스마트폰을 내려놓고 현재 순간에 집중하세요",
-            "감사한 일 세 가지를 떠올리며 미소를 지어보세요",
-            "목을 좌우로 천천히 돌려 근육을 이완시키세요",
-            "발목을 원을 그리며 돌려 혈액순환을 도와주세요",
-            "두 손을 하늘로 쭉 뻗어 전신 스트레칭을 해보세요",
-            "코로 들이마시고 입으로 내쉬며 복식호흡하세요",
-            "양손으로 얼굴을 가볍게 마사지해 피로를 풀어보세요",
-            "잠시 일어나서 제자리에서 가볍게 걸음을 걸어보세요",
-            "어깨를 위아래로 움직여 뭉친 근육을 풀어주세요",
-            "눈을 천천히 감았다 뜨며 안구 운동을 해보세요",
-            "허리를 좌우로 비틀어 척추의 긴장을 완화하세요",
-            "잠시 모든 것을 내려놓고 평온한 마음을 가져보세요"
-        ],
-        "used_messages": [],
-        "version": "2.0",
-        "description": "ClockApp Ver2 휴식 메시지 모음 (20개) - 사용자가 자유롭게 수정할 수 있습니다. used_messages는 중복 방지를 위한 배열입니다."
-    }
-    
-    try:
-        file_path = get_rest_messages_file_path()
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(default_messages, f, ensure_ascii=False, indent=2)
-        print(f"기본 휴식 메시지 파일 생성: {file_path}")
-        return True
-    except Exception as e:
-        print(f"휴식 메시지 파일 생성 실패: {e}")
-        return False
-
-def load_rest_messages():
-    """휴식 메시지 로드 및 중복 방지 선택"""
-    try:
-        file_path = get_rest_messages_file_path()
-        
-        # 파일이 없으면 기본 파일 생성
-        if not os.path.exists(file_path):
-            create_default_rest_messages()
-        
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            
-        messages = data.get('messages', [])
-        used_messages = data.get('used_messages', [])
-        
-        # 메시지가 비어있으면 기본 메시지 반환
-        if not messages:
-            return "눈을 감고 잠시 휴식을 취하세요"
-        
-        # 사용 가능한 메시지 필터링 (사용하지 않은 메시지만)
-        available_messages = [msg for msg in messages if msg not in used_messages]
-        
-        # 모든 메시지를 사용했다면 초기화
-        if not available_messages:
-            available_messages = messages.copy()
-            used_messages = []
-            print("모든 휴식 메시지를 사용했습니다. 목록을 초기화합니다.")
-        
-        # 랜덤 선택
-        selected_message = random.choice(available_messages)
-        
-        # 사용된 메시지 목록에 추가
-        used_messages.append(selected_message)
-        
-        # 업데이트된 정보를 파일에 저장
-        data['used_messages'] = used_messages
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        return selected_message
-        
-    except Exception as e:
-        print(f"휴식 메시지 로드 실패: {e}")
-        # 실패 시 기본 메시지 반환
-        return "눈을 감고 잠시 휴식을 취하세요"
-
 def get_level_data_file_path():
     """레벨 데이터 파일 경로 반환 (설정 파일과 같은 위치)"""
     if getattr(sys, 'frozen', False):
@@ -585,45 +454,21 @@ def get_level_data_file_path():
 
 def load_level_data():
     """레벨 데이터 로드"""
-    debug_log_path = "level_data_debug.txt"
-    
-    def debug_log(message):
-        try:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            log_message = f"[{timestamp}] {message}\n"
-            with open(debug_log_path, "a", encoding="utf-8") as f:
-                f.write(log_message)
-            print(log_message.strip())
-        except:
-            print(message)
-    
     try:
         file_path = get_level_data_file_path()
-        debug_log(f"DEBUG: 레벨 데이터 파일 경로: {file_path}")
-        debug_log(f"DEBUG: 파일 존재 여부: {os.path.exists(file_path)}")
-        
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                debug_log(f"레벨 데이터 로드: 레벨 {data.get('level', 1)}, 누적시간 {data.get('total_seconds', 0)}초")
-                debug_log(f"DEBUG: 로드된 데이터 타입: {type(data)}")
-                debug_log(f"DEBUG: 로드된 데이터: {data}")
+                print(f"레벨 데이터 로드: 레벨 {data.get('level', 1)}, 누적시간 {data.get('total_seconds', 0)}초")
                 return data
-        else:
-            debug_log("DEBUG: 레벨 데이터 파일이 존재하지 않음 - 기본값 사용")
     except Exception as e:
-        debug_log(f"레벨 데이터 로드 실패: {e}")
-        import traceback
-        debug_log(f"DEBUG: 스택 트레이스: {traceback.format_exc()}")
+        print(f"레벨 데이터 로드 실패: {e}")
     
     # 기본값 반환
-    default_data = {
+    return {
         "level": 1,
         "total_seconds": 0
     }
-    debug_log(f"DEBUG: 기본값 반환: {default_data}")
-    return default_data
 
 def save_level_data(level, total_seconds):
     """레벨 데이터 저장"""
@@ -633,20 +478,11 @@ def save_level_data(level, total_seconds):
             "level": level,
             "total_seconds": total_seconds
         }
-        
-        # 디버그 로그에 저장 내용 기록
-        debug_log(f"=== save_level_data 호출 ===")
-        debug_log(f"저장할 데이터: level={level}, total_seconds={total_seconds}")
-        debug_log(f"저장 경로: {file_path}")
-        
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        debug_log(f"레벨 데이터 저장 성공")
         print(f"레벨 데이터 저장: 레벨 {level}, 누적시간 {total_seconds}초")
         return True
     except Exception as e:
-        debug_log(f"레벨 데이터 저장 실패: {e}")
         print(f"레벨 데이터 저장 실패: {e}")
         return False
 
@@ -708,8 +544,7 @@ def load_settings():
         "dinner_minute": 0,
         "break_enabled": True,      # 휴식 알림 활성화
         "lunch_enabled": True,      # 점심 알림 활성화
-        "dinner_enabled": False,    # 저녁 알림 비활성화
-        "forced_break_mode": False  # 강제 휴식 모드 비활성화
+        "dinner_enabled": False     # 저녁 알림 비활성화
     }
     
     try:
@@ -1066,13 +901,9 @@ def get_default_weather_data():
 class LevelUpPopup:
     """레벨업 축하 팝업 클래스 - 레트로 픽셀 아트 스타일"""
     def __init__(self, level):
-        global current_levelup_popup
         self.level = level
         self.popup = tk.Toplevel()
         self.popup.title("Level Up!")
-        
-        # 전역 참조 저장
-        current_levelup_popup = self
         self.popup.geometry("500x400")
         self.popup.resizable(False, False)
         self.popup.attributes('-topmost', True)
@@ -1285,89 +1116,39 @@ class LevelUpPopup:
     
     def close_popup(self):
         """팝업 닫기"""
-        global current_levelup_popup
         try:
             self.popup.destroy()
-            # 전역 참조 정리
-            if current_levelup_popup == self:
-                current_levelup_popup = None
         except:
             pass
 
 class RestPopup:
     """휴식 알림 팝업 클래스"""
-    def __init__(self, parent_clock=None):
-        self.parent_clock = parent_clock
+    def __init__(self):
         self.popup = tk.Toplevel()
         self.popup.title("ClockApp Ver2 - 휴식 알림")
         
-        # 디버그 로그 파일 경로 설정
-        self.debug_log_path = "rest_popup_debug.txt"
-        self._debug_log("=== RestPopup 초기화 시작 ===")
-        
-        # 휴식 메시지 로드 (중복 방지 랜덤 선택)
-        self.current_message = load_rest_messages()
-        self._debug_log(f"선택된 휴식 메시지: {self.current_message}")
-        
         # 레벨 데이터 로드
-        try:
-            self._debug_log("레벨 데이터 로드 시작")
-            self.level_data = load_level_data()
-            self.initial_total_seconds = self.level_data['total_seconds']
-            self.popup_start_time = time.time()
-            self._debug_log("레벨 데이터 로드 완료")
-            
-            # 초기 레벨 저장 (레벨업 감지용)
-            self.initial_level = self.level_data['level']
-            self.current_level = self.initial_level
-            self._debug_log(f"현재 레벨: {self.current_level}")
-            
-            # 스트레칭 이미지 로드
-            self.stretch_image = None
-            self.stretch_photo = None
-            self._debug_log("스트레칭 이미지 로드 호출 전")
-            self.load_stretch_image()
-            self._debug_log("스트레칭 이미지 로드 호출 후")
-            
-        except Exception as e:
-            self._debug_log(f"❌ 초기화 오류: {e}")
-            import traceback
-            self._debug_log(f"스택 트레이스: {traceback.format_exc()}")
-            
-            # 오류 발생 시 기본값으로 설정
-            self.level_data = {"level": 1, "total_seconds": 0}
-            self.initial_total_seconds = 0
-            self.popup_start_time = time.time()
-            self.initial_level = 1
-            self.current_level = 1
-            self.stretch_image = None
-            self.stretch_photo = None
-            self._debug_log("기본값으로 초기화 완료")
-            
-            # 스트레칭 이미지 로드 재시도
-            try:
-                self._debug_log("스트레칭 이미지 로드 재시도")
-                self.load_stretch_image()
-            except Exception as img_e:
-                self._debug_log(f"스트레칭 이미지 로드 재시도 실패: {img_e}")
+        self.level_data = load_level_data()
+        self.initial_total_seconds = self.level_data['total_seconds']
+        self.popup_start_time = time.time()
+        
+        # 초기 레벨 저장 (레벨업 감지용)
+        self.initial_level = self.level_data['level']
+        self.current_level = self.initial_level
+        
+        # 스트레칭 이미지 로드
+        self.stretch_image = None
+        self.stretch_photo = None
+        self.load_stretch_image()
         
         # 이미지가 있으면 더 큰 크기로 설정 (가로로 넓게)
-        try:
-            if self.stretch_image:
-                self._debug_log(f"이미지 있음 - 큰 사이즈로 설정: {self.stretch_image.size}")
-                self.popup.geometry("480x520")  # 레벨 정보 표시를 위해 높이 증가
-            else:
-                self._debug_log("이미지 없음 - 기본 사이즈로 설정")
-                self.popup.geometry("400x420")
-            
-            self.popup.resizable(False, False)
-            self.popup.attributes('-topmost', True)  # 항상 위에 표시
-            self._debug_log("팝업 기본 설정 완료")
-            
-        except Exception as e:
-            self._debug_log(f"❌ 팝업 설정 오류: {e}")
-            import traceback
-            self._debug_log(f"스택 트레이스: {traceback.format_exc()}")
+        if self.stretch_image:
+            self.popup.geometry("480x520")  # 레벨 정보 표시를 위해 높이 증가
+        else:
+            self.popup.geometry("400x420")
+        
+        self.popup.resizable(False, False)
+        self.popup.attributes('-topmost', True)  # 항상 위에 표시
         
         # 아이콘 설정 (사용자 PNG 우선, 없으면 기본 시계 아이콘)
         try:
@@ -1394,34 +1175,12 @@ class RestPopup:
         # 타이머 시작
         self.update_timer()
     
-    def _debug_log(self, message):
-        """디버그 메시지를 파일로 저장 (PyInstaller 환경 대응)"""
-        try:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            log_message = f"[{timestamp}] {message}\n"
-            
-            with open(self.debug_log_path, "a", encoding="utf-8") as f:
-                f.write(log_message)
-            
-            # 콘솔에도 출력 (개발 환경용)
-            print(log_message.strip())
-        except Exception as e:
-            # 로그 저장 실패해도 앱이 중단되지 않도록
-            print(f"Debug log error: {e}")
-    
     def load_stretch_image(self):
         """스트레칭 이미지를 랜덤으로 로드"""
-        self._debug_log("=== 스트레칭 이미지 로드 시작 ===")
         try:
             image_path = stretch_image_manager.get_random_image()
-            self._debug_log(f"선택된 이미지 경로: {image_path}")
-            
             if image_path and os.path.exists(image_path):
-                self._debug_log(f"이미지 파일 존재 확인: {os.path.exists(image_path)}")
-                
                 img = Image.open(image_path)
-                self._debug_log(f"PIL Image.open 성공: {img.size}, 모드: {img.mode}")
                 
                 # 이미지 크기 조정 (너비 최대 220px로 축소, 높이는 비율 유지)
                 max_width = 220
@@ -1429,58 +1188,30 @@ class RestPopup:
                 
                 # 비율 유지하며 크기 조정
                 img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-                self._debug_log(f"이미지 크기 조정 완료: {img.size}")
                 
                 self.stretch_image = img
-                self._debug_log(f"✅ 스트레칭 이미지 로드 성공: {os.path.basename(image_path)}")
+                print(f"✅ 스트레칭 이미지 로드 성공: {os.path.basename(image_path)}")
             else:
-                self._debug_log("⚠️ 사용 가능한 스트레칭 이미지가 없습니다.")
-                self._debug_log(f"   'stretchimage' 폴더에 PNG, JPG 이미지를 넣어주세요.")
+                print("⚠️ 사용 가능한 스트레칭 이미지가 없습니다.")
+                print(f"   'stretchimage' 폴더에 PNG, JPG 이미지를 넣어주세요.")
                 self.stretch_image = None
         except Exception as e:
-            self._debug_log(f"❌ 스트레칭 이미지 로드 오류: {e}")
+            print(f"❌ 스트레칭 이미지 로드 오류: {e}")
             import traceback
             traceback.print_exc()
             self.stretch_image = None
         
     def close_popup(self):
         """팝업 닫기"""
-        self._debug_log("=== close_popup 호출됨 ===")
         try:
-            # 식사시간 중인지 확인
-            is_meal_time = False
-            if self.parent_clock and hasattr(self.parent_clock, 'is_meal_time'):
-                is_meal_time = self.parent_clock.is_meal_time()
-                self._debug_log(f"식사시간 확인: {is_meal_time}")
-            
-            # 팝업이 떠있던 시간 계산
+            # 팝업이 떠있던 시간 계산 및 저장
             elapsed_time = int(time.time() - self.popup_start_time)
-            
-            if is_meal_time:
-                # 식사시간 중에는 시간 누적하지 않음
-                new_total_seconds = self.initial_total_seconds
-                new_level, _ = calculate_level_from_seconds(new_total_seconds)
-                self._debug_log(f"식사시간 중 - 시간 누적하지 않음: elapsed_time={elapsed_time}초 (무시)")
-                print(f"식사시간 중 휴식 - 시간 누적하지 않음 (총 {new_total_seconds}초 유지)")
-            else:
-                # 일반 시간에는 시간 누적
-                new_total_seconds = self.initial_total_seconds + elapsed_time
-                new_level, _ = calculate_level_from_seconds(new_total_seconds)
-                self._debug_log(f"시간 계산: elapsed_time={elapsed_time}초, initial_total={self.initial_total_seconds}초")
-                self._debug_log(f"새로운 총 시간: {new_total_seconds}초, 새로운 레벨: {new_level}")
-                print(f"휴식 팝업 종료 - 누적 시간: {elapsed_time}초 추가 (총 {new_total_seconds}초)")
+            new_total_seconds = self.initial_total_seconds + elapsed_time
+            new_level, _ = calculate_level_from_seconds(new_total_seconds)
             
             # 레벨 데이터 저장
-            save_result = save_level_data(new_level, new_total_seconds)
-            self._debug_log(f"레벨 데이터 저장 결과: {save_result}")
-            
-            # 현재 열려있는 레벨업 팝업이 있다면 닫기
-            global current_levelup_popup
-            if current_levelup_popup is not None:
-                try:
-                    current_levelup_popup.close_popup()
-                except:
-                    pass
+            save_level_data(new_level, new_total_seconds)
+            print(f"휴식 팝업 종료 - 누적 시간: {elapsed_time}초 추가 (총 {new_total_seconds}초)")
             
             # 팝업 닫기
             self.popup.destroy()
@@ -1535,11 +1266,8 @@ class RestPopup:
     
     def create_widgets(self):
         """위젯 생성 - 모던한 디자인"""
-        self._debug_log("=== create_widgets 시작 ===")
-        
         # 팝업 배경색 설정
         self.popup.configure(bg="#f0f8ff")
-        self._debug_log("팝업 배경색 설정 완료")
         
         # 상단 헤더 영역 (간결하게)
         header_frame = tk.Frame(self.popup, bg="#4a90e2", height=60)
@@ -1560,20 +1288,19 @@ class RestPopup:
         content_frame = tk.Frame(self.popup, bg="#f0f8ff")
         content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        # 부가 메시지 (랜덤)
+        # 부가 메시지
         sub_message = tk.Label(
             content_frame,
-            text=self.current_message,
+            text="눈을 감고 잠시 휴식을 취하세요",
             font=("맑은 고딕", 11),
             fg="#5a6c7d",
-            bg="#f0f8ff",
-            wraplength=400  # 텍스트 자동 줄바꿈
+            bg="#f0f8ff"
         )
         sub_message.pack(pady=(0, 8))
         
         # 가로 레이아웃 (이미지가 있을 때)
         if self.stretch_image:
-            self._debug_log(f"✅ 스트레칭 이미지 표시 중 (크기: {self.stretch_image.size})")
+            print(f"✅ 스트레칭 이미지 표시 중 (크기: {self.stretch_image.size})")
             horizontal_container = tk.Frame(content_frame, bg="#f0f8ff")
             horizontal_container.pack(pady=3)
             
@@ -1581,47 +1308,22 @@ class RestPopup:
             image_frame = tk.Frame(horizontal_container, bg="#f0f8ff")
             image_frame.pack(side=tk.LEFT, padx=(5, 10))
             
-            # 이미지 표시 - PyInstaller 환경에서 안전한 방식으로 처리
-            try:
-                # Tkinter 메인루프 확인 및 업데이트
-                self.popup.update_idletasks()
-                
-                # ImageTk.PhotoImage 생성 시도
-                self.stretch_photo = ImageTk.PhotoImage(self.stretch_image)
-                self._debug_log("✅ ImageTk.PhotoImage 생성 성공")
-                
-                image_label = tk.Label(
-                    image_frame,
-                    image=self.stretch_photo,
-                    bg="#f0f8ff",
-                    relief=tk.FLAT,
-                    borderwidth=0
-                )
-                image_label.pack()
-                
-                # 강제 화면 갱신
-                image_frame.update_idletasks()
-                self._debug_log("✅ 이미지 라벨 생성 및 배치 완료")
-                
-            except Exception as e:
-                self._debug_log(f"❌ ImageTk.PhotoImage 생성 실패: {e}")
-                # 이미지 표시 실패 시 대체 텍스트 표시
-                fallback_label = tk.Label(
-                    image_frame,
-                    text="🧘 스트레칭\n이미지 로딩 중...",
-                    bg="#f0f8ff",
-                    fg="#4a90e2",
-                    font=("맑은 고딕", 12, "bold"),
-                    justify=tk.CENTER
-                )
-                fallback_label.pack()
-                self._debug_log("⚠️ 대체 텍스트 표시로 처리")
+            # 이미지 표시
+            self.stretch_photo = ImageTk.PhotoImage(self.stretch_image)
+            image_label = tk.Label(
+                image_frame,
+                image=self.stretch_photo,
+                bg="#f0f8ff",
+                relief=tk.FLAT,
+                borderwidth=0
+            )
+            image_label.pack()
             
             # 오른쪽: 원형 진행 표시 (크게)
             progress_container = tk.Frame(horizontal_container, bg="#f0f8ff")
             progress_container.pack(side=tk.LEFT)
         else:
-            self._debug_log("ℹ️ 스트레칭 이미지 없음 - 타이머만 표시")
+            print("ℹ️ 스트레칭 이미지 없음 - 타이머만 표시")
             # 이미지가 없으면 중앙에 진행바만
             progress_container = tk.Frame(content_frame, bg="#f0f8ff")
             progress_container.pack(pady=10)
@@ -1848,8 +1550,11 @@ class RestPopup:
             
             # 레벨 데이터 저장
             current_total_seconds = self.initial_total_seconds + actual_rest_time
-            current_level, _ = calculate_level_from_seconds(current_total_seconds)
-            save_level_data(current_level, current_total_seconds)
+            level_data = {
+                'total_seconds': current_total_seconds,
+                'last_updated': time.time()
+            }
+            save_level_data(level_data)
             
             print(f"✅ 총 누적 휴식 시간: {current_total_seconds}초 ({current_total_seconds/60:.1f}분)")
             
@@ -3144,7 +2849,7 @@ class ClockWindow:
     def show_break_popup(self):
         """휴식 팝업 표시"""
         try:
-            RestPopup(parent_clock=self)
+            RestPopup()
         except Exception as e:
             print(f"휴식 팝업 표시 오류: {e}")
     

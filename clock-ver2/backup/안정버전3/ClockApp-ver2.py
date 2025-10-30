@@ -50,19 +50,6 @@ from ctypes import wintypes
 import random
 import glob
 
-# 강제 휴식 모드를 위한 Windows API 함수들
-user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
-
-# 키보드/마우스 입력 차단을 위한 훅
-WH_KEYBOARD_LL = 13
-WH_MOUSE_LL = 14
-HC_ACTION = 0
-
-# 훅 핸들 저장용 전역 변수
-keyboard_hook = None
-mouse_hook = None
-
 # SSL 인증서 검증 우회 (개발용)
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -708,8 +695,7 @@ def load_settings():
         "dinner_minute": 0,
         "break_enabled": True,      # 휴식 알림 활성화
         "lunch_enabled": True,      # 점심 알림 활성화
-        "dinner_enabled": False,    # 저녁 알림 비활성화
-        "forced_break_mode": False  # 강제 휴식 모드 비활성화
+        "dinner_enabled": False     # 저녁 알림 비활성화
     }
     
     try:

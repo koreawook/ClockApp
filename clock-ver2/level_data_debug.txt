@@ -1,0 +1,51 @@
+[11:38:35.408] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[11:38:35.415] DEBUG: 파일 존재 여부: True
+[11:38:35.419] 레벨 데이터 로드: 레벨 2, 누적시간 30초
+[11:38:35.422] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[11:38:35.423] DEBUG: 로드된 데이터: {'level': 2, 'total_seconds': 30}
+[11:39:35.976] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[11:39:35.983] DEBUG: 파일 존재 여부: True
+[11:39:35.985] 레벨 데이터 로드: 레벨 2, 누적시간 30초
+[11:39:35.986] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[11:39:35.987] DEBUG: 로드된 데이터: {'level': 2, 'total_seconds': 30}
+[11:40:36.443] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[11:40:36.446] DEBUG: 파일 존재 여부: True
+[11:40:36.449] 레벨 데이터 로드: 레벨 2, 누적시간 30초
+[11:40:36.450] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[11:40:36.451] DEBUG: 로드된 데이터: {'level': 2, 'total_seconds': 30}
+[13:48:04.245] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:48:04.247] DEBUG: 파일 존재 여부: True
+[13:48:04.248] 레벨 데이터 로드: 레벨 5, 누적시간 739초
+[13:48:04.250] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[13:48:04.251] DEBUG: 로드된 데이터: {'level': 5, 'total_seconds': 739}
+[13:48:36.171] === save_level_data 호출 ===
+[13:48:36.173] 저장할 데이터: level=5, total_seconds=770
+[13:48:36.179] 저장 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:48:36.185] 레벨 데이터 저장 성공
+[13:49:04.938] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:49:04.940] DEBUG: 파일 존재 여부: True
+[13:49:04.942] 레벨 데이터 로드: 레벨 5, 누적시간 770초
+[13:49:04.943] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[13:49:04.945] DEBUG: 로드된 데이터: {'level': 5, 'total_seconds': 770}
+[13:49:36.740] === save_level_data 호출 ===
+[13:49:36.741] 저장할 데이터: level=5, total_seconds=801
+[13:49:36.742] 저장 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:49:36.744] 레벨 데이터 저장 성공
+[13:50:05.440] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:50:05.441] DEBUG: 파일 존재 여부: True
+[13:50:05.443] 레벨 데이터 로드: 레벨 5, 누적시간 801초
+[13:50:05.444] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[13:50:05.446] DEBUG: 로드된 데이터: {'level': 5, 'total_seconds': 801}
+[13:50:37.386] === save_level_data 호출 ===
+[13:50:37.387] 저장할 데이터: level=5, total_seconds=832
+[13:50:37.388] 저장 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:50:37.389] 레벨 데이터 저장 성공
+[13:57:08.186] DEBUG: 레벨 데이터 파일 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:57:08.187] DEBUG: 파일 존재 여부: True
+[13:57:08.189] 레벨 데이터 로드: 레벨 5, 누적시간 832초
+[13:57:08.190] DEBUG: 로드된 데이터 타입: <class 'dict'>
+[13:57:08.191] DEBUG: 로드된 데이터: {'level': 5, 'total_seconds': 832}
+[13:57:40.033] === save_level_data 호출 ===
+[13:57:40.035] 저장할 데이터: level=5, total_seconds=863
+[13:57:40.036] 저장 경로: C:\Users\arminarm\AppData\Roaming\ClockApp-Ver2\rest_level_data.json
+[13:57:40.037] 레벨 데이터 저장 성공

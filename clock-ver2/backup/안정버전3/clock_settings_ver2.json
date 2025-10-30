@@ -1,8 +1,8 @@
 {
-    "time_interval": 1,
+    "time_interval": 7,
     "lunch_hour": 12,
     "lunch_minute": 10,
-    "dinner_hour": 19,
+    "dinner_hour": 18,
     "dinner_minute": 0,
     "break_enabled": true,
     "lunch_enabled": true,

@@ -50,19 +50,6 @@ from ctypes import wintypes
 import random
 import glob
 
-# 강제 휴식 모드를 위한 Windows API 함수들
-user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
-
-# 키보드/마우스 입력 차단을 위한 훅
-WH_KEYBOARD_LL = 13
-WH_MOUSE_LL = 14
-HC_ACTION = 0
-
-# 훅 핸들 저장용 전역 변수
-keyboard_hook = None
-mouse_hook = None
-
 # SSL 인증서 검증 우회 (개발용)
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -71,9 +58,6 @@ ssl_context.verify_mode = ssl.CERT_NONE
 # 날씨 캐시 설정
 WEATHER_CACHE_FILE = "weather_cache.json"
 WEATHER_CACHE_DURATION = 7200  # 2시간 (초 단위)
-
-# 레벨업 팝업 전역 관리
-current_levelup_popup = None
 
 def load_weather_cache():
     """날씨 캐시 로드"""
@@ -465,108 +449,6 @@ def debug_log(message):
     except:
         print(message)
 
-def get_rest_messages_file_path():
-    """휴식 메시지 파일 경로 반환"""
-    if getattr(sys, 'frozen', False):
-        # 패키징된 실행파일인 경우 사용자 AppData 폴더 사용
-        appdata_path = os.path.expanduser("~\\AppData\\Roaming\\ClockApp-Ver2")
-        if not os.path.exists(appdata_path):
-            try:
-                os.makedirs(appdata_path)
-            except Exception as e:
-                print(f"휴식 메시지 폴더 생성 실패: {e}")
-                return os.path.join(os.path.dirname(sys.executable), "rest_messages.json")
-        return os.path.join(appdata_path, "rest_messages.json")
-    else:
-        # 개발 중에는 현재 스크립트 폴더 사용
-        return os.path.join(os.path.dirname(__file__), "rest_messages.json")
-
-def create_default_rest_messages():
-    """기본 휴식 메시지 JSON 파일 생성"""
-    default_messages = {
-        "messages": [
-            "눈을 감고 잠시 휴식을 취하세요",
-            "깊게 숨을 들이마시고 천천히 내쉬세요",
-            "어깨와 목의 긴장을 풀어보세요",
-            "잠시 창밖을 바라보며 마음을 비워보세요",
-            "손목과 손가락을 가볍게 스트레칭하세요",
-            "등을 곧게 펴고 몸의 균형을 맞춰보세요",
-            "5분간 자리에서 일어나 가볍게 걸어보세요",
-            "따뜻한 차 한 잔과 함께 잠시 쉼을 가져보세요",
-            "스마트폰을 내려놓고 현재 순간에 집중하세요",
-            "감사한 일 세 가지를 떠올리며 미소를 지어보세요",
-            "목을 좌우로 천천히 돌려 근육을 이완시키세요",
-            "발목을 원을 그리며 돌려 혈액순환을 도와주세요",
-            "두 손을 하늘로 쭉 뻗어 전신 스트레칭을 해보세요",
-            "코로 들이마시고 입으로 내쉬며 복식호흡하세요",
-            "양손으로 얼굴을 가볍게 마사지해 피로를 풀어보세요",
-            "잠시 일어나서 제자리에서 가볍게 걸음을 걸어보세요",
-            "어깨를 위아래로 움직여 뭉친 근육을 풀어주세요",
-            "눈을 천천히 감았다 뜨며 안구 운동을 해보세요",
-            "허리를 좌우로 비틀어 척추의 긴장을 완화하세요",
-            "잠시 모든 것을 내려놓고 평온한 마음을 가져보세요"
-        ],
-        "used_messages": [],
-        "version": "2.0",
-        "description": "ClockApp Ver2 휴식 메시지 모음 (20개) - 사용자가 자유롭게 수정할 수 있습니다. used_messages는 중복 방지를 위한 배열입니다."
-    }
-    
-    try:
-        file_path = get_rest_messages_file_path()
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(default_messages, f, ensure_ascii=False, indent=2)
-        print(f"기본 휴식 메시지 파일 생성: {file_path}")
-        return True
-    except Exception as e:
-        print(f"휴식 메시지 파일 생성 실패: {e}")
-        return False
-
-def load_rest_messages():
-    """휴식 메시지 로드 및 중복 방지 선택"""
-    try:
-        file_path = get_rest_messages_file_path()
-        
-        # 파일이 없으면 기본 파일 생성
-        if not os.path.exists(file_path):
-            create_default_rest_messages()
-        
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            
-        messages = data.get('messages', [])
-        used_messages = data.get('used_messages', [])
-        
-        # 메시지가 비어있으면 기본 메시지 반환
-        if not messages:
-            return "눈을 감고 잠시 휴식을 취하세요"
-        
-        # 사용 가능한 메시지 필터링 (사용하지 않은 메시지만)
-        available_messages = [msg for msg in messages if msg not in used_messages]
-        
-        # 모든 메시지를 사용했다면 초기화
-        if not available_messages:
-            available_messages = messages.copy()
-            used_messages = []
-            print("모든 휴식 메시지를 사용했습니다. 목록을 초기화합니다.")
-        
-        # 랜덤 선택
-        selected_message = random.choice(available_messages)
-        
-        # 사용된 메시지 목록에 추가
-        used_messages.append(selected_message)
-        
-        # 업데이트된 정보를 파일에 저장
-        data['used_messages'] = used_messages
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        return selected_message
-        
-    except Exception as e:
-        print(f"휴식 메시지 로드 실패: {e}")
-        # 실패 시 기본 메시지 반환
-        return "눈을 감고 잠시 휴식을 취하세요"
-
 def get_level_data_file_path():
     """레벨 데이터 파일 경로 반환 (설정 파일과 같은 위치)"""
     if getattr(sys, 'frozen', False):
@@ -708,8 +590,7 @@ def load_settings():
         "dinner_minute": 0,
         "break_enabled": True,      # 휴식 알림 활성화
         "lunch_enabled": True,      # 점심 알림 활성화
-        "dinner_enabled": False,    # 저녁 알림 비활성화
-        "forced_break_mode": False  # 강제 휴식 모드 비활성화
+        "dinner_enabled": False     # 저녁 알림 비활성화
     }
     
     try:
@@ -1066,13 +947,9 @@ def get_default_weather_data():
 class LevelUpPopup:
     """레벨업 축하 팝업 클래스 - 레트로 픽셀 아트 스타일"""
     def __init__(self, level):
-        global current_levelup_popup
         self.level = level
         self.popup = tk.Toplevel()
         self.popup.title("Level Up!")
-        
-        # 전역 참조 저장
-        current_levelup_popup = self
         self.popup.geometry("500x400")
         self.popup.resizable(False, False)
         self.popup.attributes('-topmost', True)
@@ -1285,29 +1162,20 @@ class LevelUpPopup:
     
     def close_popup(self):
         """팝업 닫기"""
-        global current_levelup_popup
         try:
             self.popup.destroy()
-            # 전역 참조 정리
-            if current_levelup_popup == self:
-                current_levelup_popup = None
         except:
             pass
 
 class RestPopup:
     """휴식 알림 팝업 클래스"""
-    def __init__(self, parent_clock=None):
-        self.parent_clock = parent_clock
+    def __init__(self):
         self.popup = tk.Toplevel()
         self.popup.title("ClockApp Ver2 - 휴식 알림")
         
         # 디버그 로그 파일 경로 설정
         self.debug_log_path = "rest_popup_debug.txt"
         self._debug_log("=== RestPopup 초기화 시작 ===")
-        
-        # 휴식 메시지 로드 (중복 방지 랜덤 선택)
-        self.current_message = load_rest_messages()
-        self._debug_log(f"선택된 휴식 메시지: {self.current_message}")
         
         # 레벨 데이터 로드
         try:
@@ -1447,40 +1315,18 @@ class RestPopup:
         """팝업 닫기"""
         self._debug_log("=== close_popup 호출됨 ===")
         try:
-            # 식사시간 중인지 확인
-            is_meal_time = False
-            if self.parent_clock and hasattr(self.parent_clock, 'is_meal_time'):
-                is_meal_time = self.parent_clock.is_meal_time()
-                self._debug_log(f"식사시간 확인: {is_meal_time}")
-            
-            # 팝업이 떠있던 시간 계산
+            # 팝업이 떠있던 시간 계산 및 저장
             elapsed_time = int(time.time() - self.popup_start_time)
+            new_total_seconds = self.initial_total_seconds + elapsed_time
+            new_level, _ = calculate_level_from_seconds(new_total_seconds)
             
-            if is_meal_time:
-                # 식사시간 중에는 시간 누적하지 않음
-                new_total_seconds = self.initial_total_seconds
-                new_level, _ = calculate_level_from_seconds(new_total_seconds)
-                self._debug_log(f"식사시간 중 - 시간 누적하지 않음: elapsed_time={elapsed_time}초 (무시)")
-                print(f"식사시간 중 휴식 - 시간 누적하지 않음 (총 {new_total_seconds}초 유지)")
-            else:
-                # 일반 시간에는 시간 누적
-                new_total_seconds = self.initial_total_seconds + elapsed_time
-                new_level, _ = calculate_level_from_seconds(new_total_seconds)
-                self._debug_log(f"시간 계산: elapsed_time={elapsed_time}초, initial_total={self.initial_total_seconds}초")
-                self._debug_log(f"새로운 총 시간: {new_total_seconds}초, 새로운 레벨: {new_level}")
-                print(f"휴식 팝업 종료 - 누적 시간: {elapsed_time}초 추가 (총 {new_total_seconds}초)")
+            self._debug_log(f"시간 계산: elapsed_time={elapsed_time}초, initial_total={self.initial_total_seconds}초")
+            self._debug_log(f"새로운 총 시간: {new_total_seconds}초, 새로운 레벨: {new_level}")
             
             # 레벨 데이터 저장
             save_result = save_level_data(new_level, new_total_seconds)
             self._debug_log(f"레벨 데이터 저장 결과: {save_result}")
-            
-            # 현재 열려있는 레벨업 팝업이 있다면 닫기
-            global current_levelup_popup
-            if current_levelup_popup is not None:
-                try:
-                    current_levelup_popup.close_popup()
-                except:
-                    pass
+            print(f"휴식 팝업 종료 - 누적 시간: {elapsed_time}초 추가 (총 {new_total_seconds}초)")
             
             # 팝업 닫기
             self.popup.destroy()
@@ -1560,14 +1406,13 @@ class RestPopup:
         content_frame = tk.Frame(self.popup, bg="#f0f8ff")
         content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        # 부가 메시지 (랜덤)
+        # 부가 메시지
         sub_message = tk.Label(
             content_frame,
-            text=self.current_message,
+            text="눈을 감고 잠시 휴식을 취하세요",
             font=("맑은 고딕", 11),
             fg="#5a6c7d",
-            bg="#f0f8ff",
-            wraplength=400  # 텍스트 자동 줄바꿈
+            bg="#f0f8ff"
         )
         sub_message.pack(pady=(0, 8))
         
@@ -3144,7 +2989,7 @@ class ClockWindow:
     def show_break_popup(self):
         """휴식 팝업 표시"""
         try:
-            RestPopup(parent_clock=self)
+            RestPopup()
         except Exception as e:
             print(f"휴식 팝업 표시 오류: {e}")
     
